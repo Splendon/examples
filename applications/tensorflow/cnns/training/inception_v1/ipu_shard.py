@@ -44,3 +44,9 @@ with tf.Session(config=config) as sess:
     sess.run(init)
     c, _ = sess.run([cost], feed_dict={x:train_x, y:train_y})
     print(c)
+
+
+"""
+No work yet.
+AttributeError: module 'tensorflow.python.ipu.ops' has no attribute 'ipu_shard'
+"""
