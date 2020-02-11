@@ -43,9 +43,11 @@ def train(x, y):
     train_step = my_opt.minimize(loss)
     return A,loss
 
+t_compiler_start = time.time()
 with ipu_scope("/device:IPU:0"):
     #cost,update = ipu.ipu_compiler.compile(graph,[x,y])
     ipu_run = ipu.ipu_compiler.compile(train, [x, y])
+t_compiler_end = time.time()
 
 opts = utils.create_ipu_config()
 # num_ipus
@@ -57,11 +59,23 @@ with tf.Session() as sess:
     # Training
     for i in range(100000):
         var,L = sess.run(ipu_run, feed_dict={x: rand_x, y: rand_y})
-        print('Step #' + str(i+1) + ' A = ' + str(var))
-        print('Loss = ' + str(L))
+        if (i+1) % 20==0:
+            print('Step #' + str(i+1) + ' A = ' + str(var))
+            print('Loss = ' + str(L))
 
 t1 = time.time()
-print(t1 - t0)
+print("compiler time: %s" % str(t_compiler_end - t_compiler_start))
+print("Total training time %s" % str(t1 - t0))
+
+"""
+Training time test:
+num_ipus=1
+86.02s
+num_ipus=2
+108.50s
+num_ipus=4
+116.57s
+"""
 
 """
 tensorflow/python/ipu/utils.py
