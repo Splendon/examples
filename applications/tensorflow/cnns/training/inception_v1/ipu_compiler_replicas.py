@@ -70,11 +70,14 @@ print("Total training time %s" % str(t1 - t0))
 """
 Training time test:
 num_ipus=1
-86.02s
+compiler time: 0.027s
+Total training time 60.069s
 num_ipus=2
-108.50s
+compiler time: 0.027s
+Total training time 61.437s
 num_ipus=4
-116.57s
+compiler time: 0.027s
+Total training time 64.221s
 """
 
 """
