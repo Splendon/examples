@@ -334,22 +334,19 @@ inception_v1.default_image_size = 224
 
 inception_v1_arg_scope = inception_utils.inception_arg_scope
 
-
 def run_benchmark():
   with tf.Graph().as_default():
     image_size = 224
     batch_size = 32
     images = tf.Variable(tf.random_normal([batch_size, image_size, image_size, 3],
                                           dtype=tf.float32, stddev=1e-1))
-    pool5, parameters = inception_v1(images)
+    logits, end_points = inception_v1(images)
 
     init = tf.global_variables_initializer()
     sess = tf.Session()
     sess.run(init)
 
-#    time_tensorflow_run(sess, pool5, "Forward")
-#    objective = tf.nn.l2_loss(pool5)
-#    grad = tf.gradients(objective, parameters)
-#    time_tensorflow_run(sess, grad, "Forward-backward")
+    print(sess.run(logits))
+    print(sess.run(end_points))
 
 run_benchmark()
