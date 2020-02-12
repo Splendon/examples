@@ -358,4 +358,14 @@ logits, end_points = sess.run(ipu_run, feed_dict={images})
 print(logits)
 print(end_points)
 
-# line351: TypeError: 'tuple' object is not callable
+"""
+  File "inception_v1_ipu.py", line 356, in <module>
+    logits, end_points = sess.run(ipu_run, feed_dict={images})
+  File "/home/wchen/.local/lib/python3.6/site-packages/tensorflow_core/python/client/session.py", line 956, in run
+    run_metadata_ptr)
+  File "/home/wchen/.local/lib/python3.6/site-packages/tensorflow_core/python/client/session.py", line 1115, in _run
+    feed_dict = nest.flatten_dict_items(feed_dict)
+  File "/home/wchen/.local/lib/python3.6/site-packages/tensorflow_core/python/util/nest.py", line 360, in flatten_dict_items
+    raise TypeError("input must be a dictionary")
+TypeError: input must be a dictionary
+"""
