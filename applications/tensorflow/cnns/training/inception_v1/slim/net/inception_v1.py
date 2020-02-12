@@ -20,11 +20,17 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from . import inception_utils
+import inception_utils
+
+#from tensorflow.python.ipu.scopes import ipu_scope
+#from tensorflow.python.ipu import utils
+#from tensorflow.python import ipu
 
 slim = tf.contrib.slim
 trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev)
 
+#inputs = tf.get_variable(initializer=lambda: tf.random_normal(shape=[128, 224, 224, 3], dtype=tf.float32), name="inputs")
+inputs = tf.placeholder(shape=[128, 224, 224, 3], dtype=tf.float32)
 
 def inception_v1_base(inputs,
                       final_endpoint='Mixed_5c',
@@ -327,3 +333,23 @@ def inception_v1(inputs,
 inception_v1.default_image_size = 224
 
 inception_v1_arg_scope = inception_utils.inception_arg_scope
+
+
+def run_benchmark():
+  with tf.Graph().as_default():
+    image_size = 224
+    batch_size = 32
+    images = tf.Variable(tf.random_normal([batch_size, image_size, image_size, 3],
+                                          dtype=tf.float32, stddev=1e-1))
+    pool5, parameters = inception_v1(images)
+
+    init = tf.global_variables_initializer()
+    sess = tf.Session()
+    sess.run(init)
+
+#    time_tensorflow_run(sess, pool5, "Forward")
+#    objective = tf.nn.l2_loss(pool5)
+#    grad = tf.gradients(objective, parameters)
+#    time_tensorflow_run(sess, grad, "Forward-backward")
+
+run_benchmark()
