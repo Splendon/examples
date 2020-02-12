@@ -341,20 +341,21 @@ opts = utils.create_ipu_config()
 cfg = utils.auto_select_ipus(opts, 1)
 ipu.utils.configure_ipu_system(cfg)
 
-def run_benchmark():
-  with tf.Graph().as_default():
-    image_size = 224
-    batch_size = 32
-    images = tf.Variable(tf.random_normal([batch_size, image_size, image_size, 3],
-                                          dtype=tf.float32, stddev=1e-1))
-#    logits, end_points = inception_v1(images)
-    logits, end_points = ipu_run(images)
 
-    init = tf.global_variables_initializer()
-    sess = tf.Session()
-    sess.run(init)
+image_size = 224
+batch_size = 32
+#images = tf.Variable(tf.random_normal([batch_size, image_size, image_size, 3], dtype=tf.float32, stddev=1e-1))
+images = tf.get_variable(initializer=lambda: tf.random_normal(shape=[batch_size, image_size, image_size, 3], dtype=tf.float32), name="input")
 
-    print(sess.run(logits))
-    print(sess.run(end_points))
+#logits, end_points = inception_v1(images)
 
-run_benchmark()
+init = tf.global_variables_initializer()
+sess = tf.Session()
+sess.run(init)
+
+logits, end_points = sess.run(ipu_run, feed_dict={images})
+
+print(logits)
+print(end_points)
+
+# line351: TypeError: 'tuple' object is not callable
