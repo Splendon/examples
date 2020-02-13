@@ -333,11 +333,12 @@ def run_benchmark():
                                           dtype=tf.float32, stddev=1e-1))
     logits, end_points = inception_v1(images)
 
-    init = tf.global_variables_initializer()
-    sess = tf.Session()
-    sess.run(init)
+    for i in range(100):
+      init = tf.global_variables_initializer()
+      sess = tf.Session()
+      sess.run(init)
 
-    print(sess.run(logits))
-    print(sess.run(end_points))
+      print(sess.run(logits))
+      print(sess.run(end_points))
 
 run_benchmark()
