@@ -36,13 +36,11 @@ def inception_v1_base(inputs,
                       final_endpoint='Mixed_5c',
                       scope='InceptionV1'):
   """Defines the Inception V1 base architecture.
-
   This architecture is defined in:
     Going deeper with convolutions
     Christian Szegedy, Wei Liu, Yangqing Jia, Pierre Sermanet, Scott Reed,
     Dragomir Anguelov, Dumitru Erhan, Vincent Vanhoucke, Andrew Rabinovich.
     http://arxiv.org/pdf/1409.4842v1.pdf.
-
   Args:
     inputs: a tensor of size [batch_size, height, width, channels].
     final_endpoint: specifies the endpoint to construct the network up to. It
@@ -51,10 +49,8 @@ def inception_v1_base(inputs,
       'MaxPool_4a_3x3', 'Mixed_4b', 'Mixed_4c', 'Mixed_4d', 'Mixed_4e',
       'Mixed_4f', 'MaxPool_5a_2x2', 'Mixed_5b', 'Mixed_5c']
     scope: Optional variable_scope.
-
   Returns:
     A dictionary from components of the network to the corresponding activation.
-
   Raises:
     ValueError: if final_endpoint is not set to one of the predefined values.
   """
@@ -270,16 +266,12 @@ def inception_v1(inputs,
                  scope='InceptionV1',
                  global_pool=False):
   """Defines the Inception V1 architecture.
-
   This architecture is defined in:
-
     Going deeper with convolutions
     Christian Szegedy, Wei Liu, Yangqing Jia, Pierre Sermanet, Scott Reed,
     Dragomir Anguelov, Dumitru Erhan, Vincent Vanhoucke, Andrew Rabinovich.
     http://arxiv.org/pdf/1409.4842v1.pdf.
-
   The default image size used to train this network is 224x224.
-
   Args:
     inputs: a tensor of size [batch_size, height, width, channels].
     num_classes: number of predicted classes. If 0 or None, the logits layer
@@ -297,7 +289,6 @@ def inception_v1(inputs,
       logits layer. If false or unset, pooling is done with a fixed window
       that reduces default-sized inputs to 1x1, while larger inputs lead to
       larger outputs. If true, any input size is pooled down to 1x1.
-
   Returns:
     net: a Tensor with the logits (pre-softmax activations) if num_classes
       is a non-zero integer, or the non-dropped-out input to the logits layer
