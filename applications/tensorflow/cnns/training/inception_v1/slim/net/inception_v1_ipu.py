@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import numpy as np
 import inception_utils
 
 from tensorflow.python.ipu.scopes import ipu_scope
@@ -29,7 +30,7 @@ slim = tf.contrib.slim
 trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev)
 
 #inputs = tf.get_variable(initializer=lambda: tf.random_normal(shape=[128, 224, 224, 3], dtype=tf.float32), name="inputs")
-inputs = tf.placeholder(shape=[128, 224, 224, 3], dtype=tf.float32)
+inputs = tf.placeholder(shape=[None, 224, 224, 3], dtype=tf.float32)
 
 def inception_v1_base(inputs,
                       final_endpoint='Mixed_5c',
@@ -343,29 +344,22 @@ ipu.utils.configure_ipu_system(cfg)
 
 
 image_size = 224
-batch_size = 32
+batch_size = 8
 #images = tf.Variable(tf.random_normal([batch_size, image_size, image_size, 3], dtype=tf.float32, stddev=1e-1))
-images = tf.get_variable(initializer=lambda: tf.random_normal(shape=[batch_size, image_size, image_size, 3], dtype=tf.float32), name="input")
+#images = tf.get_variable(initializer=lambda: tf.random_normal(shape=[batch_size, image_size, image_size, 3], dtype=tf.float32), name="input")
+
+x = np.random.normal(size=(batch_size, image_size, image_size, 3))
+
+rand_index = np.random.choice(8)
+rand_x = [x[rand_index]]
 
 #logits, end_points = inception_v1(images)
+for i in range(1000):
+  init = tf.global_variables_initializer()
+  sess = tf.Session()
+  sess.run(init)
 
-init = tf.global_variables_initializer()
-sess = tf.Session()
-sess.run(init)
+  logits, end_points = sess.run(ipu_run, feed_dict={inputs: rand_x})
 
-logits, end_points = sess.run(ipu_run, feed_dict={images})
-
-print(logits)
-print(end_points)
-
-"""
-  File "inception_v1_ipu.py", line 356, in <module>
-    logits, end_points = sess.run(ipu_run, feed_dict={images})
-  File "/home/wchen/.local/lib/python3.6/site-packages/tensorflow_core/python/client/session.py", line 956, in run
-    run_metadata_ptr)
-  File "/home/wchen/.local/lib/python3.6/site-packages/tensorflow_core/python/client/session.py", line 1115, in _run
-    feed_dict = nest.flatten_dict_items(feed_dict)
-  File "/home/wchen/.local/lib/python3.6/site-packages/tensorflow_core/python/util/nest.py", line 360, in flatten_dict_items
-    raise TypeError("input must be a dictionary")
-TypeError: input must be a dictionary
-"""
+  print('Step #' + str(i + 1) + ' logits = ' + str(logits))
+  print('Step #' + str(i + 1) + ' end_points = ' + str(end_points))
