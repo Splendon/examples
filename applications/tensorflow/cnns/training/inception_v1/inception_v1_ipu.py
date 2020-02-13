@@ -354,7 +354,7 @@ rand_index = np.random.choice(32)
 rand_x = [x[rand_index]]
 
 #logits, end_points = inception_v1(images)
-for i in range(1000):
+for i in range(10):
   init = tf.global_variables_initializer()
   sess = tf.Session()
   sess.run(init)
