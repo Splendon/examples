@@ -1,21 +1,33 @@
 First week：2/10 - 2/14
 A.项目开展整体思路
-1.从模型参数上理论计算能不能把整个inception_v1 model放在ipu上；  --> 可以
-2.synthetic tensor输入inception_v1(cpu --> ipu)
-3.结合train.py把inception_v1编译进单卡ipu；
+1.从模型参数上理论计算能不能把整个inception_v1 model放在ipu上；  --Done
+2.synthetic tensor输入inception_v1(cpu --> ipu)；  --Done
+3.结合train.py把inception_v1编译进单卡ipu； --Ongoing
 4.验证train.py在单卡ipu训练上loss是否收敛；
-5.在loss可以收敛的前提下，单卡调优SOTA；
+5.在loss可以收敛的前提下，先加载预权重进行调优验证，在单卡调优SOTA；
 6.开展多卡工作+调优SOTA；
 
 B.关于模型的选型
 训练时显存的占用，主要是Model本身和每一层的output的总和。
 inception_v1用的是momentum optimizer
-在momentum训练下：ram = model * 3 + batch_size * lapyers_output * 2 # fowward and backward
+在momentum训练下：ram = model * 3 + batch_size * lapyers_output(all feature-map) * 2 # fowward and backward
 根据理论计算，inception-v1在小batch_size的情况下，整个model可以直接放进IPU 304Mb-SRAM进行训练；
+
+Model  Params(M)   FLOPs(G)
+vgg16 138.36 15.61
+vgg19 143.67 19.77
+Inception_V1  13 1.51
+Inception_V2 11.2 *
+Inception_V3 27.16 5.73
+Inception_V4 42.68 6.14
+resnet18 11.69 1.82
+resnet34 21.8 3.67
+resnet50 25.56 4.11
+
 
 C.项目工作开展
 1. 2/10 - 2/11 
-花了一天半时间熟悉和掌握ipu相关的开发过程；
+花了一天时间熟悉和掌握ipu相关的开发过程；
     代码：ipu_compiler_1.py --> Ipu example of regression.
          ipu_compiler_2.py --> Ipu example of classification.
 2. 2/11
@@ -34,6 +46,9 @@ D.代码go through
 3.inception_v1_ipu_input.py  --> synthetic tensor输入:shape=[batch_size, 224, 224, 3]
 4.inception_v1_ipu_train_val.py  --> ipu_compiler训练
 
-E.Risk
+E.下周的工作开展
+1.在loss可以收敛的前提下，先加载预权重进行调优验证，在单卡调优SOTA；
+
+F.risk
 1.目前不能确定在单卡ipu训练上loss是否收敛；
-2.对于多卡工作还不熟悉；
+2.对于多卡工作还不熟悉，不清楚多卡SOTA调优；
