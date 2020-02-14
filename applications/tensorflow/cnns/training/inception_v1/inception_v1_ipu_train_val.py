@@ -5,7 +5,7 @@ import numpy as np
 import pdb
 import os
 from datetime import datetime
-import slim.nets.inception_v1 as inception_v1
+import slim.net.inception_v1 as inception_v1
 from create_tf_record import *
 import tensorflow.contrib.slim as slim
 
