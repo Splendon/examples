@@ -165,7 +165,7 @@ def train(train_record_file,
 
         with ipu_scope("/device:IPU:0"):
             # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
-            ipu_run = ipu.ipu_compiler.compile(inception_v1.inception_v1, [input_images, input_labels]) #out, end_points
+            ipu_run = ipu.ipu_compiler.compile(inception_v1.inception_v1, [input_images]) #out, end_points
 
         opts = utils.create_ipu_config()
         cfg = utils.auto_select_ipus(opts, 1)
