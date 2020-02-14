@@ -1,10 +1,17 @@
 First week：2/10 - 2/14
+
 A.项目开展整体思路
+
 1.从模型参数上理论计算能不能把整个inception_v1 model放在ipu上；  --Done
+
 2.synthetic tensor输入inception_v1(cpu --> ipu)；  --Done
+
 3.结合train.py把inception_v1编译进单卡ipu； --Ongoing
+
 4.验证train.py在单卡ipu训练上loss是否收敛；
+
 5.在loss可以收敛的前提下，先加载预权重进行调优验证，在单卡调优SOTA；
+
 6.开展多卡工作+调优SOTA；
 
 B.关于模型的选型
