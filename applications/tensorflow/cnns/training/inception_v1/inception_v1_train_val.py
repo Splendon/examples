@@ -1,36 +1,32 @@
-# Codes are mainly forked from git-repo: PanJinquan/tensorflow_models_learning.
+#coding=utf-8
 
-import tensorflow as tf
-import numpy as np
+import tensorflow as tf 
+import numpy as np 
 import pdb
 import os
 from datetime import datetime
-import slim.net.inception_v1 as inception_v1
+import slim.nets.inception_v1 as inception_v1
 from create_tf_record import *
 import tensorflow.contrib.slim as slim
 
-from tensorflow.python.ipu.scopes import ipu_scope
-from tensorflow.python.ipu import utils
-from tensorflow.python import ipu
 
-labels_nums = 5
-batch_size = 1
-resize_height = 224
-resize_width = 224
+labels_nums = 5  # 类别个数
+batch_size = 16  #
+resize_height = 224  # 指定存储图片高度
+resize_width = 224  # 指定存储图片宽度
 depths = 3
 data_shape = [batch_size, resize_height, resize_width, depths]
 
-# input_images定义
+# 定义input_images为图片数据
 input_images = tf.placeholder(dtype=tf.float32, shape=[None, resize_height, resize_width, depths], name='input')
-# input_labels定义
+# 定义input_labels为labels数据
 # input_labels = tf.placeholder(dtype=tf.int32, shape=[None], name='label')
 input_labels = tf.placeholder(dtype=tf.int32, shape=[None, labels_nums], name='label')
 
-# dropout definition
+# 定义dropout的概率
 keep_prob = tf.placeholder(tf.float32,name='keep_prob')
 is_training = tf.placeholder(tf.bool, name='is_training')
 
-# eval函数
 def net_evaluation(sess,loss,accuracy,val_images_batch,val_labels_batch,val_nums):
     val_max_steps = int(val_nums / batch_size)
     val_losses = []
@@ -40,8 +36,6 @@ def net_evaluation(sess,loss,accuracy,val_images_batch,val_labels_batch,val_nums
         # print('labels:',val_y)
         # val_loss = sess.run(loss, feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
         # val_acc = sess.run(accuracy,feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
-
-        # 通过比对val数据的image和label获得loss和accuracy
         val_loss,val_acc = sess.run([loss,accuracy], feed_dict={input_images: val_x, input_labels: val_y, keep_prob:1.0, is_training: False})
         val_losses.append(val_loss)
         val_accs.append(val_acc)
@@ -49,37 +43,32 @@ def net_evaluation(sess,loss,accuracy,val_images_batch,val_labels_batch,val_nums
     mean_acc = np.array(val_accs, dtype=np.float32).mean()
     return mean_loss, mean_acc
 
-# 网络训练过程
 def step_train(train_op,loss,accuracy,
                train_images_batch,train_labels_batch,train_nums,train_log_step,
                val_images_batch,val_labels_batch,val_nums,val_log_step,
                snapshot_prefix,snapshot):
     '''
-    Training loop
-    :param train_op
-    :param loss
-    :param accuracy
-    :param train_images_batch
-    :param train_labels_batch
-    :param train_nums
-    :param train_log_step
-    :param val_images_batch
-    :param val_labels_batch
-    :param val_nums
-    :param val_log_step
-    :param snapshot_prefix
-    :param snapshot
+    循环迭代训练过程
+    :param train_op: 训练op
+    :param loss:     loss函数
+    :param accuracy: 准确率函数
+    :param train_images_batch: 训练images数据
+    :param train_labels_batch: 训练labels数据
+    :param train_nums:         总训练数据
+    :param train_log_step:   训练log显示间隔
+    :param val_images_batch: 验证images数据
+    :param val_labels_batch: 验证labels数据
+    :param val_nums:         总验证数据
+    :param val_log_step:     验证log显示间隔
+    :param snapshot_prefix: 模型保存的路径
+    :param snapshot:        模型保存间隔
     :return: None
     '''
-    # 训练过程参数保存
     saver = tf.train.Saver()
     max_acc = 0.0
-
-    # 启动tf.Session
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
-        # tf协调器和入队线程启动器
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         for i in range(max_steps + 1):
@@ -87,7 +76,7 @@ def step_train(train_op,loss,accuracy,
             _, train_loss = sess.run([train_op, loss], feed_dict={input_images: batch_input_images,
                                                                   input_labels: batch_input_labels,
                                                                   keep_prob: 0.8, is_training: True})
-            # train for one-batch
+            # train测试(这里仅测试训练集的一个batch)
             if i % train_log_step == 0:
                 train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
                                                           input_labels: batch_input_labels,
@@ -95,16 +84,16 @@ def step_train(train_op,loss,accuracy,
                 print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (
                 datetime.now(), i, train_loss, train_acc))
 
-            # val
+            # val测试(测试全部val数据)
             if i % val_log_step == 0:
                 mean_loss, mean_acc = net_evaluation(sess, loss, accuracy, val_images_batch, val_labels_batch, val_nums)
                 print("%s: Step [%d]  val Loss : %f, val accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
 
-            # model snapshot
+            # 模型保存:每迭代snapshot次或者最后一次保存模型
             if (i % snapshot == 0 and i > 0) or i == max_steps:
                 print('-----save:{}-{}'.format(snapshot_prefix, i))
                 saver.save(sess, snapshot_prefix, global_step=i)
-            # save model with highest accuracy in val
+            # 保存val准确率最高的模型
             if mean_acc > max_acc and mean_acc > 0.7:
                 max_acc = mean_acc
                 path = os.path.dirname(snapshot_prefix)
@@ -115,7 +104,6 @@ def step_train(train_op,loss,accuracy,
         coord.request_stop()
         coord.join(threads)
 
-# 训练主函数
 def train(train_record_file,
           train_log_step,
           train_param,
@@ -126,52 +114,46 @@ def train(train_record_file,
           snapshot,
           snapshot_prefix):
     '''
-    :param train_record_file
-    :param train_log_step
-    :param train_param
-    :param val_record_file
-    :param val_log_step
-    :param val_param
-    :param labels_nums
-    :param data_shape
-    :param snapshot
-    :param snapshot_prefix
+    :param train_record_file: 训练的tfrecord文件
+    :param train_log_step: 显示训练过程log信息间隔
+    :param train_param: train参数
+    :param val_record_file: 验证的tfrecord文件
+    :param val_log_step: 显示验证过程log信息间隔
+    :param val_param: val参数
+    :param labels_nums: labels数
+    :param data_shape: 输入数据shape
+    :param snapshot: 保存模型间隔
+    :param snapshot_prefix: 保存模型文件的前缀名
     :return:
     '''
     [base_lr,max_steps]=train_param
     [batch_size,resize_height,resize_width,depths]=data_shape
 
-    # get example_nums of train and val
+    # 获得训练和测试的样本数
     train_nums=get_example_nums(train_record_file)
     val_nums=get_example_nums(val_record_file)
     print('train nums:%d,val nums:%d'%(train_nums,val_nums))
 
-    # get train data for record
-    # during training, it needs shuffle=True
-    # train_images: Tensor("mul:0", shape=(224, 224, 3), dtype=float32)
-    # train_labels: Tensor("Cast:0", shape=(), dtype=int32)
-    train_images, train_labels = read_records(train_record_file, resize_height, resize_width, type='normalization') # 读取训练数据
-
-    # train_images_batch: Tensor("shuffle_batch:0", shape=(32, 224, 224, 3), dtype=float32)
-    #  train_labels_batch: Tensor("one_hot:0", shape=(32, 5), dtype=int32)
+    # 从record中读取图片和labels数据
+    # train数据,训练数据一般要求打乱顺序shuffle=True
+    train_images, train_labels = read_records(train_record_file, resize_height, resize_width, type='normalization')
     train_images_batch, train_labels_batch = get_batch_images(train_images, train_labels,
                                                               batch_size=batch_size, labels_nums=labels_nums,
                                                               one_hot=True, shuffle=True)
-    # during val, shuffle=True is not necessary
-    val_images, val_labels = read_records(val_record_file, resize_height, resize_width, type='normalization') # 读取验证数据
+    # val数据,验证数据可以不需要打乱数据
+    val_images, val_labels = read_records(val_record_file, resize_height, resize_width, type='normalization')
     val_images_batch, val_labels_batch = get_batch_images(val_images, val_labels,
                                                           batch_size=batch_size, labels_nums=labels_nums,
                                                           one_hot=True, shuffle=False)
 
     # Define the model:
-    # 导入神经网络模型，获得网络输出
     with slim.arg_scope(inception_v1.inception_v1_arg_scope()):
         out, end_points = inception_v1.inception_v1(inputs=input_images, num_classes=labels_nums, dropout_keep_prob=keep_prob, is_training=is_training)
 
     # Specify the loss function: tf.losses定义的loss函数都会自动添加到loss函数,不需要add_loss()了
-    tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out) #添加交叉熵损失loss=1.6
+    tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out)#添加交叉熵损失loss=1.6
     # slim.losses.add_loss(my_loss)
-    loss = tf.losses.get_total_loss(add_regularization_losses=False) #添加正则化损失loss=2.2
+    loss = tf.losses.get_total_loss(add_regularization_losses=False)#添加正则化损失loss=2.2
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float32))
 
     # Specify the optimization scheme:
@@ -190,14 +172,13 @@ def train(train_record_file,
     # 更新的过程不包含在正常的训练过程中, 需要我们去手动像下面这样更新
     # 通过`tf.get_collection`获得所有需要更新的`op`
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-
     # 使用`tensorflow`的控制流, 先执行更新算子, 再执行训练
-    # tf-ipu可以导入slim.learning.create_train_op
     with tf.control_dependencies(update_ops):
         # create_train_op that ensures that when we evaluate it to get the loss,
         # the update_ops are done and the gradient updates are computed.
         # train_op = slim.learning.create_train_op(total_loss=loss,optimizer=optimizer)
         train_op = slim.learning.create_train_op(total_loss=loss, optimizer=optimizer)
+
 
     # 循环迭代过程
     step_train(train_op, loss, accuracy,
@@ -205,33 +186,19 @@ def train(train_record_file,
                val_images_batch, val_labels_batch, val_nums, val_log_step,
                snapshot_prefix, snapshot)
 
-with ipu_scope("/device:IPU:0"):
-    # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
-    ipu_run = ipu.ipu_compiler.compile(train, [input_images, input_labels])
-
-opts = utils.create_ipu_config()
-cfg = utils.auto_select_ipus(opts, 1)
-ipu.utils.configure_ipu_system(cfg)
-
 
 if __name__ == '__main__':
     train_record_file='dataset/record/train224.tfrecords'
     val_record_file='dataset/record/val224.tfrecords'
 
     train_log_step=100
-    base_lr = 0.01
-    max_steps = 10000
+    base_lr = 0.01  # 学习率
+    max_steps = 10000  # 迭代次数
     train_param=[base_lr,max_steps]
 
     val_log_step=200
-    snapshot=2000
+    snapshot=2000#保存文件间隔
     snapshot_prefix='models/model.ckpt'
-
-#    with tf.Session() as sess:
-#        sess.run(tf.global_variables_initializer())
-#        sess.run(ipu_run, feed_dict={input_images: rand_x, input_labels: rand_y})
-
-"""
     train(train_record_file=train_record_file,
           train_log_step=train_log_step,
           train_param=train_param,
@@ -241,4 +208,3 @@ if __name__ == '__main__':
           data_shape=data_shape,
           snapshot=snapshot,
           snapshot_prefix=snapshot_prefix)
-"""
