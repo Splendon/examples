@@ -114,6 +114,8 @@ def step_train(train_op,loss,accuracy,
 
         coord.request_stop()
         coord.join(threads)
+    return batch_input_images, batch_input_labels
+
 # 训练主函数
 def train(train_record_file,
           train_log_step,
@@ -177,7 +179,8 @@ def train(train_record_file,
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            out, end_points = sess.run(ipu_run)
+            batch_input_images_array, _ = step_train()
+            out, end_points = sess.run(ipu_run, feed_dict={input_images: batch_input_images_array})
 
     # Specify the loss function: tf.losses定义的loss函数都会自动添加到loss函数,不需要add_loss()了
     tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out) #添加交叉熵损失loss=1.6
