@@ -147,7 +147,12 @@ def train(train_record_file,
 
     # get train data for record
     # during training, it needs shuffle=True
+    # train_images: Tensor("mul:0", shape=(224, 224, 3), dtype=float32)
+    # train_labels: Tensor("Cast:0", shape=(), dtype=int32)
     train_images, train_labels = read_records(train_record_file, resize_height, resize_width, type='normalization') # 读取训练数据
+
+    # train_images_batch: Tensor("shuffle_batch:0", shape=(32, 224, 224, 3), dtype=float32)
+    #  train_labels_batch: Tensor("one_hot:0", shape=(32, 5), dtype=int32)
     train_images_batch, train_labels_batch = get_batch_images(train_images, train_labels,
                                                               batch_size=batch_size, labels_nums=labels_nums,
                                                               one_hot=True, shuffle=True)
@@ -164,7 +169,6 @@ def train(train_record_file,
         #out, end_points = inception_v1.inception_v1(inputs=input_images, num_classes=labels_nums, dropout_keep_prob=keep_prob, is_training=is_training)
 
         with ipu_scope("/device:IPU:0"):
-            # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
             ipu_run = ipu.ipu_compiler.compile(inception_v1.inception_v1, [input_images]) #out, end_points
 
         opts = utils.create_ipu_config()
@@ -174,7 +178,7 @@ def train(train_record_file,
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
-        out, end_points = sess.run(ipu_run, feed_dict={input_images: train_images})#, input_labels: labels_nums})
+        out, end_points = sess.run(ipu_run, feed_dict={input_images: train_images_batch})#, input_labels: labels_nums})
 
     # Specify the loss function: tf.losses定义的loss函数都会自动添加到loss函数,不需要add_loss()了
     tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out) #添加交叉熵损失loss=1.6
