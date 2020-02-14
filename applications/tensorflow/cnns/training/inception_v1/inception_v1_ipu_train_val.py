@@ -14,7 +14,7 @@ from tensorflow.python.ipu import utils
 from tensorflow.python import ipu
 
 labels_nums = 5
-batch_size = 16
+batch_size = 1
 resize_height = 224
 resize_width = 224
 depths = 3
