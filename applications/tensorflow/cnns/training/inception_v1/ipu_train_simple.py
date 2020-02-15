@@ -104,6 +104,7 @@ def train(input_images, input_labels):
 with ipu_scope("/device:IPU:0"):
 # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
     ipu_run = ipu.ipu_compiler.compile(train, [input_images, input_labels])
+    print('ipu_compiler success.')
 
 opts = utils.create_ipu_config()
 cfg = utils.auto_select_ipus(opts, 1)
@@ -112,6 +113,7 @@ ipu.utils.configure_ipu_system(cfg)
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 sess.run(tf.local_variables_initializer())
+print('session success')
 
 # 将tensor转为array
 batch_input_images = sess.run(train_images_batch)
