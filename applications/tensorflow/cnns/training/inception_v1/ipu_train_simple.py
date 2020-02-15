@@ -7,9 +7,9 @@ import slim.net.inception_v1 as inception_v1
 from create_tf_record import *
 import tensorflow.contrib.slim as slim
 
-#from tensorflow.python.ipu.scopes import ipu_scope
-#from tensorflow.python.ipu import utils
-#from tensorflow.python import ipu
+from tensorflow.python.ipu.scopes import ipu_scope
+from tensorflow.python.ipu import utils
+from tensorflow.python import ipu
 
 labels_nums = 5
 batch_size = 1
@@ -63,7 +63,6 @@ val_images_batch, val_labels_batch = get_batch_images(val_images, val_labels,
                                                       batch_size=batch_size, labels_nums=labels_nums,
                                                       one_hot=True, shuffle=False)
 def train():
-
     # Define the model:
     # 导入神经网络模型，获得网络输出
     with slim.arg_scope(inception_v1.inception_v1_arg_scope()):
@@ -101,44 +100,54 @@ def train():
         train_op = slim.learning.create_train_op(total_loss=loss, optimizer=optimizer)
     return train_op, loss, accuracy
 
-def step_train(train_op,loss,accuracy,
-               train_images_batch,train_labels_batch,train_nums,train_log_step,
-               val_images_batch,val_labels_batch,val_nums,val_log_step,
-               snapshot_prefix,snapshot):
-    # 训练过程参数保存
-    saver = tf.train.Saver()
-    max_acc = 0.0
+with ipu_scope("/device:IPU:0"):
+# cost,update = ipu.ipu_compiler.compile(graph,[x,y])
+    ipu_run = ipu.ipu_compiler.compile(train, [])
 
-    # 启动tf.Session
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer())
-        # tf协调器和入队线程启动器
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-        for i in range(max_steps + 1):
-            batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
-            _, train_loss = sess.run([train_op, loss], feed_dict={input_images: batch_input_images,
-                                                                  input_labels: batch_input_labels,
-                                                                  keep_prob: 0.8, is_training: True})
-            # train for one-batch
-            if i % train_log_step == 0:
-                train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
-                                                          input_labels: batch_input_labels,
-                                                          keep_prob: 1.0, is_training: False})
-                print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (
-                datetime.now(), i, train_loss, train_acc))
+opts = utils.create_ipu_config()
+cfg = utils.auto_select_ipus(opts, 1)
+ipu.utils.configure_ipu_system(cfg)
 
-            # val
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
+sess.run(tf.local_variables_initializer())
+
+train_op, loss, accuracy = sess.run(ipu_run)
+
+'''
+saver = tf.train.Saver()
+max_acc = 0.0
+
+# 启动tf.Session
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    sess.run(tf.local_variables_initializer())
+    # tf协调器和入队线程启动器
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+    for i in range(max_steps + 1):
+        batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
+        _, train_loss = sess.run([train_op, loss], feed_dict={input_images: batch_input_images,
+                                                              input_labels: batch_input_labels,
+                                                              keep_prob: 0.8, is_training: True})
+        # train for one-batch
+        if i % train_log_step == 0:
+            train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
+                                                      input_labels: batch_input_labels,
+                                                      keep_prob: 1.0, is_training: False})
+            print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (
+            datetime.now(), i, train_loss, train_acc))
+
+        # val
 #            if i % val_log_step == 0:
 #                mean_loss, mean_acc = net_evaluation(sess, loss, accuracy, val_images_batch, val_labels_batch, val_nums)
 #                print("%s: Step [%d]  val Loss : %f, val accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
 
-            # model snapshot
-            if (i % snapshot == 0 and i > 0) or i == max_steps:
-                print('-----save:{}-{}'.format(snapshot_prefix, i))
-                saver.save(sess, snapshot_prefix, global_step=i)
-            # save model with highest accuracy in val
+        # model snapshot
+        if (i % snapshot == 0 and i > 0) or i == max_steps:
+            print('-----save:{}-{}'.format(snapshot_prefix, i))
+            saver.save(sess, snapshot_prefix, global_step=i)
+        # save model with highest accuracy in val
 #            if mean_acc > max_acc and mean_acc > 0.7:
 #                max_acc = mean_acc
 #                path = os.path.dirname(snapshot_prefix)
@@ -146,23 +155,6 @@ def step_train(train_op,loss,accuracy,
 #                print('------save:{}'.format(best_models))
 #                saver.save(sess, best_models)
 
-        coord.request_stop()
-        coord.join(threads)
-
-train_op, loss, accuracy = train()
-
-# 循环迭代过程
-step_train(train_op, loss, accuracy,
-           train_images_batch, train_labels_batch, train_nums, train_log_step,
-           val_images_batch, val_labels_batch, val_nums, val_log_step,
-           snapshot_prefix, snapshot)
-
-"""
-with ipu_scope("/device:IPU:0"):
-# cost,update = ipu.ipu_compiler.compile(graph,[x,y])
-ipu_run = ipu.ipu_compiler.compile(train, [input_images, input_labels])
-
-opts = utils.create_ipu_config()
-cfg = utils.auto_select_ipus(opts, 1)
-ipu.utils.configure_ipu_system(cfg)
-"""
+    coord.request_stop()
+    coord.join(threads)
+'''
