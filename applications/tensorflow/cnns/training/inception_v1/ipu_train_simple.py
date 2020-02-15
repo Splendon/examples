@@ -113,10 +113,12 @@ sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 sess.run(tf.local_variables_initializer())
 
-#batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
+# 将tensor转为array
+batch_input_images = sess.run(train_images_batch)
+batch_input_labels = sess.run(train_labels_batch)
 
-train_op, loss, accuracy = sess.run(ipu_run, feed_dict={input_images: train_images_batch,
-                                                          input_labels: train_labels_batch,
+train_op, loss, accuracy = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
+                                                          input_labels: batch_input_labels,
                                                           keep_prob: 0.8, is_training: True})
 
 
