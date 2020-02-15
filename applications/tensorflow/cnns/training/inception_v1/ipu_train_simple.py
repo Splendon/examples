@@ -19,10 +19,10 @@ depths = 3
 data_shape = [batch_size, resize_height, resize_width, depths]
 
 # input_images定义
-input_images = tf.placeholder(dtype=tf.float32, shape=[None, resize_height, resize_width, depths], name='input')
+input_images = tf.placeholder(dtype=tf.float32, shape=[batch_size, resize_height, resize_width, depths], name='input')
 # input_labels定义
 # input_labels = tf.placeholder(dtype=tf.int32, shape=[None], name='label')
-input_labels = tf.placeholder(dtype=tf.int32, shape=[None, labels_nums], name='label')
+input_labels = tf.placeholder(dtype=tf.int32, shape=[batch_size, labels_nums], name='label')
 
 # dropout definition
 keep_prob = tf.placeholder(tf.float32,name='keep_prob')
@@ -51,6 +51,7 @@ print('train nums:%d,val nums:%d'%(train_nums,val_nums))
 # train_images: Tensor("mul:0", shape=(224, 224, 3), dtype=float32)
 # train_labels: Tensor("Cast:0", shape=(), dtype=int32)
 train_images, train_labels = read_records(train_record_file, resize_height, resize_width, type='normalization') # 读取训练数据
+print('train_images:%s,train_labels:%s'%(str(train_images), str(train_labels)))
 
 # train_images_batch: Tensor("shuffle_batch:0", shape=(32, 224, 224, 3), dtype=float32)
 #  train_labels_batch: Tensor("one_hot:0", shape=(32, 5), dtype=int32)
@@ -112,10 +113,10 @@ sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 sess.run(tf.local_variables_initializer())
 
-batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
+#batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
 
-train_op, loss, accuracy = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
-                                                          input_labels: batch_input_labels,
+train_op, loss, accuracy = sess.run(ipu_run, feed_dict={input_images: train_images_batch,
+                                                          input_labels: train_labels_batch,
                                                           keep_prob: 0.8, is_training: True})
 
 
