@@ -117,11 +117,19 @@ sess.run(tf.local_variables_initializer())
 batch_input_images = sess.run(train_images_batch)
 batch_input_labels = sess.run(train_labels_batch)
 
+print('success')
+
 train_op, loss, accuracy = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
                                                           input_labels: batch_input_labels,
                                                           keep_prob: 0.8, is_training: True})
+print(train_op, loss, accuracy)
 
+for i in range(max_steps + 1):
+    if i % train_log_step == 0:
+        train_loss, train_acc = loss, accuracy
+        print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (datetime.now(), i, train_loss, train_acc))
 
+"""
 saver = tf.train.Saver()
 max_acc = 0.0
 
@@ -138,7 +146,7 @@ for i in range(max_steps + 1):
 coord.request_stop()
 coord.join(threads)
 
-"""
+
 for i in range(max_steps + 1):
     _, train_loss = sess.run([train_op, loss], feed_dict={input_images: batch_input_images,
                                                           input_labels: batch_input_labels,
