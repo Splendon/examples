@@ -48,13 +48,13 @@ print('train nums:%d,val nums:%d'%(train_nums,val_nums))
 
 # get train data for record
 # during training, it needs shuffle=True
-# train_images: Tensor("mul:0", shape=(224, 224, 3), dtype=float32)
+# train_images: Tensor("mul:0", shape=(224, 224, 3), dtype=float32);
 # train_labels: Tensor("Cast:0", shape=(), dtype=int32)
 train_images, train_labels = read_records(train_record_file, resize_height, resize_width, type='normalization') # 读取训练数据
 print('train_images:%s,train_labels:%s'%(str(train_images), str(train_labels)))
 
 # train_images_batch: Tensor("shuffle_batch:0", shape=(32, 224, 224, 3), dtype=float32)
-#  train_labels_batch: Tensor("one_hot:0", shape=(32, 5), dtype=int32)
+# train_labels_batch: Tensor("one_hot:0", shape=(32, 5), dtype=int32)
 train_images_batch, train_labels_batch = get_batch_images(train_images, train_labels,
                                                           batch_size=batch_size, labels_nums=labels_nums,
                                                           one_hot=True, shuffle=True)
@@ -112,6 +112,24 @@ ipu.utils.configure_ipu_system(cfg)
 saver = tf.train.Saver()
 max_acc = 0.0
 
+def net_evaluation(loss,accuracy,val_images_batch,val_labels_batch,val_nums):
+    val_max_steps = int(val_nums / batch_size)
+    val_losses = []
+    val_accs = []
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        for _ in range(val_max_steps):
+            val_x, val_y = sess.run([val_images_batch, val_labels_batch])
+            # print('labels:',val_y)
+            # val_loss = sess.run(loss, feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
+            # val_acc = sess.run(accuracy,feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
+            val_loss,val_acc = sess.run([loss,accuracy], feed_dict={input_images: val_x, input_labels: val_y, keep_prob:1.0, is_training: False})
+            val_losses.append(val_loss)
+            val_accs.append(val_acc)
+        mean_loss = np.array(val_losses, dtype=np.float32).mean()
+        mean_acc = np.array(val_accs, dtype=np.float32).mean()
+        return mean_loss, mean_acc
+
 # 启动tf.Session
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
@@ -131,46 +149,21 @@ with tf.Session() as sess:
             datetime.now(), i, train_loss, train_accuracy))
 
         # val
-#            if i % val_log_step == 0:
-#                mean_loss, mean_acc = net_evaluation(sess, loss, accuracy, val_images_batch, val_labels_batch, val_nums)
-#                print("%s: Step [%d]  val Loss : %f, val accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
+            if i % val_log_step == 0:
+                mean_loss, mean_acc = net_evaluation(train_loss, train_accuracy, val_images_batch, val_labels_batch, val_nums)
+                print("%s: Step [%d]  val Loss : %f, val accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
 
         # model snapshot
         if (i % snapshot == 0 and i > 0) or i == max_steps:
             print('-----save:{}-{}'.format(snapshot_prefix, i))
             saver.save(sess, snapshot_prefix, global_step=i)
         # save model with highest accuracy in val
-#            if mean_acc > max_acc and mean_acc > 0.7:
-#                max_acc = mean_acc
-#                path = os.path.dirname(snapshot_prefix)
-#                best_models = os.path.join(path, 'best_models_{}_{:.4f}.ckpt'.format(i, max_acc))
-#                print('------save:{}'.format(best_models))
-#                saver.save(sess, best_models)
+            if mean_acc > max_acc and mean_acc > 0.7:
+                max_acc = mean_acc
+                path = os.path.dirname(snapshot_prefix)
+                best_models = os.path.join(path, 'best_models_{}_{:.4f}.ckpt'.format(i, max_acc))
+                print('------save:{}'.format(best_models))
+                saver.save(sess, best_models)
 
     coord.request_stop()
     coord.join(threads)
-'''
-train_op, loss, accuracy = train()
-
-# 循环迭代过程
-step_train(train_op, loss, accuracy,
-           train_images_batch, train_labels_batch, train_nums, train_log_step,
-           val_images_batch, val_labels_batch, val_nums, val_log_step,
-           snapshot_prefix, snapshot)
-
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(coord=coord)
-    #val_x, val_y = sess.run([val_images_batch, val_labels_batch])
-    for i in range(max_steps + 1):
-        # 在会话中取出images和labels
-        train_x, train_y = sess.run([train_images_batch, train_labels_batch])
-        val_x, val_y = sess.run([val_images_batch, val_labels_batch])
-        # 这里仅显示每个batch里第一张图片
-        #show_image("image", val_x[0, :, :, :])
-        print('shape:{},tpye:{},labels:{}'.format(train_x.shape, train_x.dtype, train_y))
-        print('shape:{},tpye:{},labels:{}'.format(val_x.shape, val_x.dtype, val_y))
-    coord.request_stop()
-    coord.join(threads)
-'''
