@@ -39,18 +39,18 @@ def train(x, y):
     train_step = my_opt.minimize(loss)
     return A,loss
 
+with ipu_scope("/device:IPU:0"):
+    #cost,update = ipu.ipu_compiler.compile(graph,[x,y])
+    ipu_run = ipu.ipu_compiler.compile(train, [x, y])
+
+opts = utils.create_ipu_config()
+cfg = utils.auto_select_ipus(opts,1)
+ipu.utils.configure_ipu_system(cfg)
+
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     # Training
     for i in range(1000):
-        with ipu_scope("/device:IPU:0"):
-            # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
-            ipu_run = ipu.ipu_compiler.compile(train, [x, y])
-
-        opts = utils.create_ipu_config()
-        cfg = utils.auto_select_ipus(opts, 1)
-        ipu.utils.configure_ipu_system(cfg)
-
         var,L = sess.run(ipu_run, feed_dict={x: rand_x, y: rand_y})
         print('Step #' + str(i+1) + ' A = ' + str(var))
         print('Loss = ' + str(L))
