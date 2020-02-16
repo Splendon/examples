@@ -12,7 +12,7 @@ from tensorflow.python.ipu import utils
 from tensorflow.python import ipu
 
 labels_nums = 5
-batch_size = 1
+batch_size = 32
 resize_height = 224
 resize_width = 224
 depths = 3
@@ -86,7 +86,6 @@ def train(input_images, input_labels):
     # # train_tensor = optimizer.minimize(loss, global_step)
     # train_op = slim.learning.create_train_op(loss, optimizer,global_step=global_step)
 
-
     # 在定义训练的时候, 注意到我们使用了`batch_norm`层时,需要更新每一层的`average`和`variance`参数,
     # 更新的过程不包含在正常的训练过程中, 需要我们去手动像下面这样更新
     # 通过`tf.get_collection`获得所有需要更新的`op`
@@ -110,6 +109,63 @@ opts = utils.create_ipu_config()
 cfg = utils.auto_select_ipus(opts, 1)
 ipu.utils.configure_ipu_system(cfg)
 
+def step_train(train_op,loss,accuracy,
+               train_images_batch,train_labels_batch,train_nums,train_log_step,
+               val_images_batch,val_labels_batch,val_nums,val_log_step,
+               snapshot_prefix,snapshot):
+    # 训练过程参数保存
+    saver = tf.train.Saver()
+    max_acc = 0.0
+
+    # 启动tf.Session
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
+        # tf协调器和入队线程启动器
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+        for i in range(max_steps + 1):
+            train_x, train_y = sess.run([train_images_batch, train_labels_batch])
+            print('shape:{},tpye:{},labels:{}'.format(train_x.shape, train_x.dtype, train_y))
+            _, train_loss = sess.run(ipu_run, feed_dict={input_images: train_x,
+                                                                  input_labels: train_y,
+                                                                  keep_prob: 0.8, is_training: True})
+            # train for one-batch
+            if i % train_log_step == 0:
+                train_acc = sess.run(ipu_run, feed_dict={input_images: train_x,
+                                                          input_labels: train_y,
+                                                          keep_prob: 1.0, is_training: False})
+                print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (
+                datetime.now(), i, train_loss, train_acc))
+
+            # val
+#            if i % val_log_step == 0:
+#                mean_loss, mean_acc = net_evaluation(sess, loss, accuracy, val_images_batch, val_labels_batch, val_nums)
+#                print("%s: Step [%d]  val Loss : %f, val accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
+
+            # model snapshot
+            if (i % snapshot == 0 and i > 0) or i == max_steps:
+                print('-----save:{}-{}'.format(snapshot_prefix, i))
+                saver.save(sess, snapshot_prefix, global_step=i)
+            # save model with highest accuracy in val
+#            if mean_acc > max_acc and mean_acc > 0.7:
+#                max_acc = mean_acc
+#                path = os.path.dirname(snapshot_prefix)
+#                best_models = os.path.join(path, 'best_models_{}_{:.4f}.ckpt'.format(i, max_acc))
+#                print('------save:{}'.format(best_models))
+#                saver.save(sess, best_models)
+
+        coord.request_stop()
+        coord.join(threads)
+'''
+train_op, loss, accuracy = train()
+
+# 循环迭代过程
+step_train(train_op, loss, accuracy,
+           train_images_batch, train_labels_batch, train_nums, train_log_step,
+           val_images_batch, val_labels_batch, val_nums, val_log_step,
+           snapshot_prefix, snapshot)
+
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     coord = tf.train.Coordinator()
@@ -117,7 +173,7 @@ with tf.Session() as sess:
     #val_x, val_y = sess.run([val_images_batch, val_labels_batch])
     for i in range(max_steps + 1):
         # 在会话中取出images和labels
-        train_x, train_y = sess.run([val_images_batch, val_labels_batch])
+        train_x, train_y = sess.run([train_images_batch, train_labels_batch])
         val_x, val_y = sess.run([val_images_batch, val_labels_batch])
         # 这里仅显示每个batch里第一张图片
         #show_image("image", val_x[0, :, :, :])
@@ -125,3 +181,4 @@ with tf.Session() as sess:
         print('shape:{},tpye:{},labels:{}'.format(val_x.shape, val_x.dtype, val_y))
     coord.request_stop()
     coord.join(threads)
+'''
