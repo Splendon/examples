@@ -12,7 +12,7 @@ from tensorflow.python.ipu import utils
 from tensorflow.python import ipu
 
 labels_nums = 5
-batch_size = 32
+batch_size = 5
 resize_height = 224
 resize_width = 224
 depths = 3
@@ -31,9 +31,9 @@ is_training = tf.placeholder(tf.bool, name='is_training')
 train_record_file = 'dataset/record/train224.tfrecords'
 val_record_file = 'dataset/record/val224.tfrecords'
 
-train_log_step = 100
+train_log_step = 1
 base_lr = 0.01
-max_steps = 10000
+max_steps = 10
 train_param = [base_lr, max_steps]
 data_shape = [batch_size, resize_height, resize_width,depths]
 
