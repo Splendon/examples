@@ -122,16 +122,13 @@ with tf.Session() as sess:
     for i in range(max_steps + 1):
         train_x, train_y = sess.run([train_images_batch, train_labels_batch])
         print('shape:{},tpye:{},labels:{}'.format(train_x.shape, train_x.dtype, train_y))
-        _, train_loss = sess.run(ipu_run, feed_dict={input_images: train_x,
+        train_optimizer, train_loss, train_accuracy = sess.run(ipu_run, feed_dict={input_images: train_x,
                                                               input_labels: train_y,
                                                               keep_prob: 0.8, is_training: True})
         # train for one-batch
         if i % train_log_step == 0:
-            train_acc = sess.run(ipu_run, feed_dict={input_images: train_x,
-                                                      input_labels: train_y,
-                                                      keep_prob: 1.0, is_training: False})
             print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (
-            datetime.now(), i, train_loss, train_acc))
+            datetime.now(), i, train_loss, train_accuracy))
 
         # val
 #            if i % val_log_step == 0:
