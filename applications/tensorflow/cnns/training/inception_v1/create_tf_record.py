@@ -20,7 +20,7 @@ from PIL import Image
 
 ##########################################################################
 def _int32_feature(value):
-    return tf.train.Feature(int32_list=tf.train.Int64List(value=[value]))
+    return tf.train.Feature(int32_list=tf.train.Int32List(value=[value]))
 # 生成字符串型的属性
 def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
