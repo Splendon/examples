@@ -109,9 +109,6 @@ opts = utils.create_ipu_config()
 cfg = utils.auto_select_ipus(opts, 1)
 ipu.utils.configure_ipu_system(cfg)
 
-saver = tf.train.Saver()
-max_acc = 0.0
-
 def net_evaluation(loss,accuracy,val_images_batch,val_labels_batch,val_nums):
     val_max_steps = int(val_nums / batch_size)
     val_losses = []
@@ -129,6 +126,9 @@ def net_evaluation(loss,accuracy,val_images_batch,val_labels_batch,val_nums):
         mean_loss = np.array(val_losses, dtype=np.float32).mean()
         mean_acc = np.array(val_accs, dtype=np.float32).mean()
         return mean_loss, mean_acc
+
+saver = tf.train.Saver()
+max_acc = 0.0
 
 # 启动tf.Session
 with tf.Session() as sess:
