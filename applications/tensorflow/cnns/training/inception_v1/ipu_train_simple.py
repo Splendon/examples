@@ -19,10 +19,10 @@ depths = 3
 data_shape = [batch_size, resize_height, resize_width, depths]
 
 # input_images定义
-input_images = tf.placeholder(dtype=tf.float16, shape=[None, resize_height, resize_width, depths], name='input')
+input_images = tf.placeholder(dtype=tf.float16, shape=[batch_size, resize_height, resize_width, depths], name='input')
 # input_labels定义
 # input_labels = tf.placeholder(dtype=tf.int32, shape=[None], name='label')
-input_labels = tf.placeholder(dtype=tf.int32, shape=[None, labels_nums], name='label')
+input_labels = tf.placeholder(dtype=tf.int32, shape=[batch_size, labels_nums], name='label')
 
 # dropout definition
 keep_prob = tf.placeholder(tf.float16,name='keep_prob')
