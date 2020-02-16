@@ -65,9 +65,17 @@ val_images_batch, val_labels_batch = get_batch_images(val_images, val_labels,
 def train(input_images, input_labels):
     # Define the model:
     # 导入神经网络模型，获得网络输出
-    with slim.arg_scope(inception_v1.inception_v1_arg_scope()):
-        out, end_points = inception_v1.inception_v1(inputs=input_images, num_classes=labels_nums, dropout_keep_prob=keep_prob, is_training=is_training)
-
+#    with slim.arg_scope(inception_v1.inception_v1_arg_scope()):
+#        out, end_points = inception_v1.inception_v1(inputs=input_images, num_classes=labels_nums, dropout_keep_prob=keep_prob, is_training=is_training)
+    out, end_points = inception_v1.inception_v1(inputs=input_images,
+                 num_classes=labels_nums,
+                 is_training=False,
+                 dropout_keep_prob=0.8,
+                 prediction_fn=slim.softmax,
+                 spatial_squeeze=True,
+                 reuse=None,
+                 scope='InceptionV1',
+                 global_pool=False)
     # Specify the loss function: tf.losses定义的loss函数都会自动添加到loss函数,不需要add_loss()了
     tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out) #添加交叉熵损失loss=1.6
     # slim.losses.add_loss(my_loss)
