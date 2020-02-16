@@ -35,7 +35,7 @@ train_log_step = 100
 base_lr = 0.01
 max_steps = 10000
 train_param = [base_lr, max_steps]
-data_shape = [batch_size,resize_height,resize_width,depths]
+data_shape = [batch_size, resize_height, resize_width,depths]
 
 val_log_step = 200
 snapshot = 2000
@@ -110,70 +110,18 @@ opts = utils.create_ipu_config()
 cfg = utils.auto_select_ipus(opts, 1)
 ipu.utils.configure_ipu_system(cfg)
 
-sess = tf.Session()
-sess.run(tf.global_variables_initializer())
-sess.run(tf.local_variables_initializer())
-print('session success')
-
-# 将tensor转为array
-batch_input_images = sess.run(train_images_batch)
-batch_input_labels = sess.run(train_labels_batch)
-
-print('success')
-
-train_op, loss, accuracy = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
-                                                          input_labels: batch_input_labels,
-                                                          keep_prob: 0.8, is_training: True})
-print(train_op, loss, accuracy)
-
-for i in range(max_steps + 1):
-    if i % train_log_step == 0:
-        train_loss, train_acc = loss, accuracy
-        print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (datetime.now(), i, train_loss, train_acc))
-
-"""
-saver = tf.train.Saver()
-max_acc = 0.0
-
-# tf协调器和入队线程启动器
-coord = tf.train.Coordinator()
-threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
-for i in range(max_steps + 1):
-    if i % train_log_step == 0:
-        train_loss, train_acc = loss, accuracy
-        print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (datetime.now(), i, train_loss, train_acc))
-
-
-coord.request_stop()
-coord.join(threads)
-
-
-for i in range(max_steps + 1):
-    _, train_loss = sess.run([train_op, loss], feed_dict={input_images: batch_input_images,
-                                                          input_labels: batch_input_labels,
-                                                          keep_prob: 0.8, is_training: True})
-    # train for one-batch
-    if i % train_log_step == 0:
-        train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
-                                                  input_labels: batch_input_labels,
-                                                  keep_prob: 1.0, is_training: False})
-        print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (datetime.now(), i, train_loss, train_acc))
-
-    # val
-#            if i % val_log_step == 0:
-#                mean_loss, mean_acc = net_evaluation(sess, loss, accuracy, val_images_batch, val_labels_batch, val_nums)
-#                print("%s: Step [%d]  val Loss : %f, val accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
-
-    # model snapshot
-    if (i % snapshot == 0 and i > 0) or i == max_steps:
-        print('-----save:{}-{}'.format(snapshot_prefix, i))
-        saver.save(sess, snapshot_prefix, global_step=i)
-    # save model with highest accuracy in val
-#            if mean_acc > max_acc and mean_acc > 0.7:
-#                max_acc = mean_acc
-#                path = os.path.dirname(snapshot_prefix)
-#                best_models = os.path.join(path, 'best_models_{}_{:.4f}.ckpt'.format(i, max_acc))
-#                print('------save:{}'.format(best_models))
-#                saver.save(sess, best_models)
-"""
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(coord=coord)
+    #val_x, val_y = sess.run([val_images_batch, val_labels_batch])
+    for i in range(max_steps + 1):
+        # 在会话中取出images和labels
+        train_x, train_y = sess.run([val_images_batch, val_labels_batch])
+        val_x, val_y = sess.run([val_images_batch, val_labels_batch])
+        # 这里仅显示每个batch里第一张图片
+        #show_image("image", val_x[0, :, :, :])
+        print('shape:{},tpye:{},labels:{}'.format(train_x.shape, train_x.dtype, train_y))
+        print('shape:{},tpye:{},labels:{}'.format(val_x.shape, val_x.dtype, val_y))
+    coord.request_stop()
+    coord.join(threads)
