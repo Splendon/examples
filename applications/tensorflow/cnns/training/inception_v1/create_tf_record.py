@@ -18,10 +18,9 @@ import matplotlib.pyplot as plt
 import random
 from PIL import Image
 
-
 ##########################################################################
-def _int64_feature(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+def _int32_feature(value):
+    return tf.train.Feature(int32_list=tf.train.Int64List(value=[value]))
 # 生成字符串型的属性
 def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -141,9 +140,9 @@ def read_records(filename,resize_height, resize_width,type=None):
     :param resize_height:
     :param resize_width:
     :param type:选择图像数据的返回类型
-         None:默认将uint8-[0,255]转为float32-[0,255]
-         normalization:归一化float32-[0,1]
-         centralization:归一化float32-[0,1],再减均值中心化
+         None:默认将uint8-[0,255]转为float16-[0,255]
+         normalization:归一化float16-[0,1]
+         centralization:归一化float16-[0,1],再减均值中心化
     :return:
     '''
     # 创建文件队列,不限读取的数量
@@ -158,10 +157,10 @@ def read_records(filename,resize_height, resize_width,type=None):
         serialized_example,
         features={
             'image_raw': tf.FixedLenFeature([], tf.string),
-            'height': tf.FixedLenFeature([], tf.int64),
-            'width': tf.FixedLenFeature([], tf.int64),
-            'depth': tf.FixedLenFeature([], tf.int64),
-            'label': tf.FixedLenFeature([], tf.int64)
+            'height': tf.FixedLenFeature([], tf.int32),
+            'width': tf.FixedLenFeature([], tf.int32),
+            'depth': tf.FixedLenFeature([], tf.int32),
+            'label': tf.FixedLenFeature([], tf.int32)
         }
     )
     tf_image = tf.decode_raw(features['image_raw'], tf.uint8)#获得图像原始的数据
@@ -174,19 +173,19 @@ def read_records(filename,resize_height, resize_width,type=None):
     # tf_image=tf.reshape(tf_image, [-1])    # 转换为行向量
     tf_image=tf.reshape(tf_image, [resize_height, resize_width, 3]) # 设置图像的维度
 
-    # 恢复数据后,才可以对图像进行resize_images:输入uint->输出float32
+    # 恢复数据后,才可以对图像进行resize_images:输入uint->输出float16
     # tf_image=tf.image.resize_images(tf_image,[224, 224])
 
-    # 存储的图像类型为uint8,tensorflow训练时数据必须是tf.float32
+    # 存储的图像类型为uint8,tensorflow训练时数据必须是tf.float16
     if type is None:
-        tf_image = tf.cast(tf_image, tf.float32)
+        tf_image = tf.cast(tf_image, tf.float16)
     elif type=='normalization':# [1]若需要归一化请使用:
         # 仅当输入数据是uint8,才会归一化[0,255]
-        # tf_image = tf.image.convert_image_dtype(tf_image, tf.float32)
-        tf_image = tf.cast(tf_image, tf.float32) * (1. / 255.0)  # 归一化
+        # tf_image = tf.image.convert_image_dtype(tf_image, tf.float16)
+        tf_image = tf.cast(tf_image, tf.float16) * (1. / 255.0)  # 归一化
     elif type=='centralization':
         # 若需要归一化,且中心化,假设均值为0.5,请使用:
-        tf_image = tf.cast(tf_image, tf.float32) * (1. / 255) - 0.5 #中心化
+        tf_image = tf.cast(tf_image, tf.float16) * (1. / 255) - 0.5 #中心化
 
     # 这里仅仅返回图像和标签
     # return tf_image, tf_height,tf_width,tf_depth,tf_label
@@ -220,14 +219,14 @@ def create_records(image_dir,file, output_record_dir, resize_height, resize_widt
         if i%log==0 or i==len(images_list)-1:
             print('------------processing:%d-th------------' % (i))
             print('current image_path=%s' % (image_path),'shape:{}'.format(image.shape),'labels:{}'.format(labels))
-        # 这里仅保存一个label,多label适当增加"'label': _int64_feature(label)"项
+        # 这里仅保存一个label,多label适当增加"'label': _int32_feature(label)"项
         label=labels[0]
         example = tf.train.Example(features=tf.train.Features(feature={
             'image_raw': _bytes_feature(image_raw),
-            'height': _int64_feature(image.shape[0]),
-            'width': _int64_feature(image.shape[1]),
-            'depth': _int64_feature(image.shape[2]),
-            'label': _int64_feature(label)
+            'height': _int32_feature(image.shape[0]),
+            'width': _int32_feature(image.shape[1]),
+            'depth': _int32_feature(image.shape[2]),
+            'label': _int32_feature(label)
         }))
         writer.write(example.SerializeToString())
     writer.close()
