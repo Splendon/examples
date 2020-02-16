@@ -353,12 +353,11 @@ rand_index = np.random.choice(32)
 rand_x = [x[rand_index]]
 
 #logits, end_points = inception_v1(images)
-for i in range(20):
+with tf.Session() as sess:
   init = tf.global_variables_initializer()
-  sess = tf.Session()
   sess.run(init)
+  for i in range(20):
+    logits, end_points = sess.run(ipu_run, feed_dict={inputs: rand_x})
 
-  logits, end_points = sess.run(ipu_run, feed_dict={inputs: rand_x})
-
-  print('Step #' + str(i + 1) + ' logits = ' + str(logits))
-  print('Step #' + str(i + 1) + ' end_points = ' + str(end_points))
+    print('Step #' + str(i + 1) + ' logits = ' + str(logits))
+    print('Step #' + str(i + 1) + ' end_points = ' + str(end_points))
