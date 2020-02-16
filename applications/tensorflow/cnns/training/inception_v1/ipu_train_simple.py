@@ -12,20 +12,20 @@ from tensorflow.python.ipu import utils
 from tensorflow.python import ipu
 
 labels_nums = 5
-batch_size = 5
+batch_size = 1
 resize_height = 224
 resize_width = 224
 depths = 3
 data_shape = [batch_size, resize_height, resize_width, depths]
 
 # input_images定义
-input_images = tf.placeholder(dtype=tf.float16, shape=[batch_size, resize_height, resize_width, depths], name='input')
+input_images = tf.placeholder(dtype=tf.float32, shape=[batch_size, resize_height, resize_width, depths], name='input')
 # input_labels定义
 # input_labels = tf.placeholder(dtype=tf.int32, shape=[None], name='label')
 input_labels = tf.placeholder(dtype=tf.int32, shape=[batch_size, labels_nums], name='label')
 
 # dropout definition
-keep_prob = tf.placeholder(tf.float16,name='keep_prob')
+keep_prob = tf.placeholder(tf.float32,name='keep_prob')
 is_training = tf.placeholder(tf.bool, name='is_training')
 
 train_record_file = 'dataset/record/train224.tfrecords'
@@ -48,12 +48,11 @@ print('train nums:%d,val nums:%d'%(train_nums,val_nums))
 
 # get train data for record
 # during training, it needs shuffle=True
-# train_images: Tensor("mul:0", shape=(224, 224, 3), dtype=float16);
+# train_images: Tensor("mul:0", shape=(224, 224, 3), dtype=float32);
 # train_labels: Tensor("Cast:0", shape=(), dtype=int32)
 train_images, train_labels = read_records(train_record_file, resize_height, resize_width, type='normalization') # 读取训练数据
-print('train_images:%s,train_labels:%s'%(str(train_images), str(train_labels)))
 
-# train_images_batch: Tensor("shuffle_batch:0", shape=(32, 224, 224, 3), dtype=float16)
+# train_images_batch: Tensor("shuffle_batch:0", shape=(32, 224, 224, 3), dtype=float32)
 # train_labels_batch: Tensor("one_hot:0", shape=(32, 5), dtype=int32)
 train_images_batch, train_labels_batch = get_batch_images(train_images, train_labels,
                                                           batch_size=batch_size, labels_nums=labels_nums,
@@ -73,7 +72,7 @@ def train(input_images, input_labels):
     tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out) #添加交叉熵损失loss=1.6
     # slim.losses.add_loss(my_loss)
     loss = tf.losses.get_total_loss(add_regularization_losses=False) #添加正则化损失loss=2.2
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float16))
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float32))
 
     # Specify the optimization scheme:
     # optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
@@ -123,8 +122,8 @@ def net_evaluation(loss,accuracy,val_images_batch,val_labels_batch,val_nums):
             val_loss,val_acc = sess.run([loss,accuracy], feed_dict={input_images: val_x, input_labels: val_y, keep_prob:1.0, is_training: False})
             val_losses.append(val_loss)
             val_accs.append(val_acc)
-        mean_loss = np.array(val_losses, dtype=np.float16).mean()
-        mean_acc = np.array(val_accs, dtype=np.float16).mean()
+        mean_loss = np.array(val_losses, dtype=np.float32).mean()
+        mean_acc = np.array(val_accs, dtype=np.float32).mean()
         return mean_loss, mean_acc
 
 saver = tf.train.Saver()
