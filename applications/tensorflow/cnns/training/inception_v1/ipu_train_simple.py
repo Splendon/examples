@@ -62,6 +62,7 @@ val_images, val_labels = read_records(val_record_file, resize_height, resize_wid
 val_images_batch, val_labels_batch = get_batch_images(val_images, val_labels,
                                                       batch_size=batch_size, labels_nums=labels_nums,
                                                       one_hot=True, shuffle=False)
+
 def train(input_images, input_labels):
     # Define the model:
     # 导入神经网络模型，获得网络输出
@@ -106,35 +107,88 @@ def train(input_images, input_labels):
         # the update_ops are done and the gradient updates are computed.
         # train_op = slim.learning.create_train_op(total_loss=loss,optimizer=optimizer)
         train_op = slim.learning.create_train_op(total_loss=loss, optimizer=optimizer)
-    return train_op, loss, accuracy
+
+    return loss, accuracy, train_op
 
 with ipu_scope("/device:IPU:0"):
 # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
-    ipu_run = ipu.ipu_compiler.compile(train, [input_images, input_labels])
+    ipu_run = ipu.ipu_compiler.compile(train, [input_images])
     print('ipu_compiler success.')
 
 opts = utils.create_ipu_config()
 cfg = utils.auto_select_ipus(opts, 1)
 ipu.utils.configure_ipu_system(cfg)
 
-def net_evaluation(loss,accuracy,val_images_batch,val_labels_batch,val_nums):
+def net_evaluation(sess,loss,accuracy,val_images_batch,val_labels_batch,val_nums):
     val_max_steps = int(val_nums / batch_size)
     val_losses = []
     val_accs = []
+    for _ in range(val_max_steps):
+        val_x, val_y = sess.run([val_images_batch, val_labels_batch])
+        # print('labels:',val_y)
+        # val_loss = sess.run(loss, feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
+        # val_acc = sess.run(accuracy,feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
+        val_loss,val_acc = sess.run([loss,accuracy], feed_dict={input_images: val_x, input_labels: val_y, keep_prob:1.0, is_training: False})
+        val_losses.append(val_loss)
+        val_accs.append(val_acc)
+    mean_loss = np.array(val_losses, dtype=np.float32).mean()
+    mean_acc = np.array(val_accs, dtype=np.float32).mean()
+    return mean_loss, mean_acc
+
+def step_train(train_images_batch,train_labels_batch,train_nums,train_log_step,
+               val_images_batch,val_labels_batch,val_nums,val_log_step,
+               snapshot_prefix,snapshot):
+    # 训练过程参数保存
+    saver = tf.train.Saver()
+    max_acc = 0.0
+
+    # 启动tf.Session
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for _ in range(val_max_steps):
-            val_x, val_y = sess.run([val_images_batch, val_labels_batch])
-            # print('labels:',val_y)
-            # val_loss = sess.run(loss, feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
-            # val_acc = sess.run(accuracy,feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
-            val_loss,val_acc = sess.run([loss,accuracy], feed_dict={input_images: val_x, input_labels: val_y, keep_prob:1.0, is_training: False})
-            val_losses.append(val_loss)
-            val_accs.append(val_acc)
-        mean_loss = np.array(val_losses, dtype=np.float16).mean()
-        mean_acc = np.array(val_accs, dtype=np.float16).mean()
-        return mean_loss, mean_acc
+        sess.run(tf.local_variables_initializer())
+        # tf协调器和入队线程启动器
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+        for i in range(max_steps + 1):
+            batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
+            train_loss, train_acc  = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
+                                                                  input_labels: batch_input_labels,
+                                                                  keep_prob: 0.8, is_training: True})
+            # train for one-batch
+            if i % train_log_step == 0:
+#                train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
+#                                                          input_labels: batch_input_labels,
+#                                                          keep_prob: 1.0, is_training: False})
+                print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (
+                datetime.now(), i, train_loss, train_acc))
 
+            # val
+            if i % val_log_step == 0:
+                mean_loss, mean_acc = net_evaluation(sess, train_loss, train_acc, val_images_batch, val_labels_batch, val_nums)
+                print("%s: Step [%d]  val Loss : %f, val accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
+
+            # model snapshot
+            if (i % snapshot == 0 and i > 0) or i == max_steps:
+                print('-----save:{}-{}'.format(snapshot_prefix, i))
+                saver.save(sess, snapshot_prefix, global_step=i)
+            # save model with highest accuracy in val
+            if mean_acc > max_acc and mean_acc > 0.7:
+                max_acc = mean_acc
+                path = os.path.dirname(snapshot_prefix)
+                best_models = os.path.join(path, 'best_models_{}_{:.4f}.ckpt'.format(i, max_acc))
+                print('------save:{}'.format(best_models))
+                saver.save(sess, best_models)
+
+        coord.request_stop()
+        coord.join(threads)
+
+# 循环迭代过程
+step_train(train_images_batch, train_labels_batch, train_nums, train_log_step,
+           val_images_batch, val_labels_batch, val_nums, val_log_step,
+           snapshot_prefix, snapshot)
+
+
+"""
 saver = tf.train.Saver()
 max_acc = 0.0
 
@@ -175,3 +229,4 @@ with tf.Session() as sess:
 
     coord.request_stop()
     coord.join(threads)
+"""
