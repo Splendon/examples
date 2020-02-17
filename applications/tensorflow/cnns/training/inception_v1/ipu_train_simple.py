@@ -33,7 +33,7 @@ val_record_file = 'dataset/record/val224.tfrecords'
 
 train_log_step = 1
 base_lr = 0.01
-max_steps = 100000
+max_steps = 10000
 train_param = [base_lr, max_steps]
 data_shape = [batch_size, resize_height, resize_width,depths]
 
