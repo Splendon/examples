@@ -15,7 +15,7 @@ train_record_file = 'dataset/record/train224.tfrecords'
 val_record_file = 'dataset/record/val224.tfrecords'
 
 base_lr = 0.01
-batch_size = 32
+batch_size = 1
 labels_nums = 5
 max_steps = 2
 resize_height = 224
@@ -141,8 +141,7 @@ with tf.Session() as sess:
         train_x, train_y = batch_test(train_record_file, 224, 224)
         print('shape:{},tpye:{},labels:{}'.format(train_x.shape, train_x.dtype, train_y))
         train_optimizer, train_loss, train_accuracy = sess.run(ipu_run, feed_dict={input_images: train_x,
-                                                              input_labels: train_y,
-                                                              keep_prob: 0.8, is_training: True})
+                                                              input_labels: train_y})
 
     coord.request_stop()
     coord.join(threads)
