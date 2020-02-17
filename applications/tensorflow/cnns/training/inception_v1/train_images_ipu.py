@@ -21,8 +21,8 @@ max_steps = 2
 resize_height = 224
 resize_width = 224
 
-input_images = tf.placeholder(dtype=tf.float32, shape=[batch_size, resize_height, resize_width, 3], name='input')
-input_labels = tf.placeholder(dtype=tf.int32, shape=[batch_size, labels_nums], name='label')
+input_images = tf.placeholder(dtype=tf.float32, shape=[None, resize_height, resize_width, 3], name='input')
+input_labels = tf.placeholder(dtype=tf.int32, shape=[None, labels_nums], name='label')
 
 # dropout definition
 keep_prob = tf.placeholder(tf.float16,name='keep_prob')
