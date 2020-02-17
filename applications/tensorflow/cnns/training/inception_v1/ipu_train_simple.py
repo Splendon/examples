@@ -135,7 +135,7 @@ def net_evaluation(sess,loss,accuracy,val_images_batch,val_labels_batch,val_nums
     mean_acc = np.array(val_accs, dtype=np.float32).mean()
     return mean_loss, mean_acc
 
-def step_train(train_images_batch,train_labels_batch):
+def step_train(train_x,train_y):
     # 训练过程参数保存
     saver = tf.train.Saver()
     max_acc = 0.0
@@ -148,7 +148,7 @@ def step_train(train_images_batch,train_labels_batch):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         for i in range(max_steps + 1):
-            batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
+            batch_input_images, batch_input_labels = sess.run([train_x, train_y])
             train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
                                                                   input_labels: batch_input_labels})
 #                                                                  keep_prob: 0.8, is_training: True})
