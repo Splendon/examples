@@ -163,7 +163,8 @@ def train(train_record_file,
     # global_step = tf.Variable(0, trainable=False)
     # learning_rate = tf.train.exponential_decay(0.05, global_step, 150, 0.9)
     #
-    optimizer = tf.train.MomentumOptimizer(learning_rate=base_lr,momentum= 0.9)
+    #optimizer = tf.train.MomentumOptimizer(learning_rate=base_lr,momentum= 0.9)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
     # # train_tensor = optimizer.minimize(loss, global_step)
     # train_op = slim.learning.create_train_op(loss, optimizer,global_step=global_step)
 
