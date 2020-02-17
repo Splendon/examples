@@ -13,6 +13,8 @@ from tensorflow.python import ipu
 
 train_record_file = 'dataset/record/train224.tfrecords'
 val_record_file = 'dataset/record/val224.tfrecords'
+
+base_lr = 0.01
 batch_size = 32
 labels_nums = 5
 max_steps = 2
