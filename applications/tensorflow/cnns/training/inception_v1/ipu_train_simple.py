@@ -152,6 +152,7 @@ def step_train(train_images_batch,train_labels_batch):
             train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
                                                                   input_labels: batch_input_labels})
 #                                                                  keep_prob: 0.8, is_training: True})
+            '''
             # train for one-batch
             if i % train_log_step == 0:
 #                train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
@@ -175,7 +176,7 @@ def step_train(train_images_batch,train_labels_batch):
                 best_models = os.path.join(path, 'best_models_{}_{:.4f}.ckpt'.format(i, max_acc))
                 print('------save:{}'.format(best_models))
                 saver.save(sess, best_models)
-
+            '''
         coord.request_stop()
         coord.join(threads)
 
