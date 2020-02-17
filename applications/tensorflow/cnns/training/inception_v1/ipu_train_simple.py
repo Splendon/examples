@@ -33,7 +33,7 @@ val_record_file = 'dataset/record/val224.tfrecords'
 
 train_log_step = 1
 base_lr = 0.01
-max_steps = 1000
+max_steps = 100000
 train_param = [base_lr, max_steps]
 data_shape = [batch_size, resize_height, resize_width,depths]
 
@@ -119,21 +119,21 @@ opts = utils.create_ipu_config()
 cfg = utils.auto_select_ipus(opts, 1)
 ipu.utils.configure_ipu_system(cfg)
 
-def net_evaluation(sess,loss,accuracy,val_images_batch,val_labels_batch,val_nums):
+def net_evaluation(sess,val_images_input,val_labels_input,val_nums):
     val_max_steps = int(val_nums / batch_size)
     val_losses = []
     val_accs = []
     for _ in range(val_max_steps):
-        val_x, val_y = sess.run([val_images_batch, val_labels_batch])
+        val_x, val_y = sess.run([val_images_input, val_labels_input])
         # print('labels:',val_y)
         # val_loss = sess.run(loss, feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
         # val_acc = sess.run(accuracy,feed_dict={x: val_x, y: val_y, keep_prob: 1.0})
-        val_loss,val_acc = sess.run([loss,accuracy], feed_dict={input_images: val_x, input_labels: val_y, keep_prob:1.0, is_training: False})
+        val_loss,val_acc, _ = sess.run(ipu_run, feed_dict={input_images: val_x,input_labels: val_y}) # keep_prob:1.0, is_training: False})
         val_losses.append(val_loss)
         val_accs.append(val_acc)
-    mean_loss = np.array(val_losses, dtype=np.float32).mean()
-    mean_acc = np.array(val_accs, dtype=np.float32).mean()
-    return mean_loss, mean_acc
+    batch_loss = np.array(val_losses, dtype=np.float32).mean()
+    batch_acc = np.array(val_accs, dtype=np.float32).mean()
+    return batch_loss, batch_acc
 
 def step_train(train_x,train_y):
     # 训练过程参数保存
@@ -152,8 +152,8 @@ def step_train(train_x,train_y):
             train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
                                                                   input_labels: batch_input_labels})
 #                                                                  keep_prob: 0.8, is_training: True})
-            print(train_loss, train_acc)
-            '''
+#            print(train_loss, train_acc)
+
             # train for one-batch
             if i % train_log_step == 0:
 #                train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
@@ -163,7 +163,7 @@ def step_train(train_x,train_y):
 
             # val
             if i % val_log_step == 0:
-                mean_loss, mean_acc = net_evaluation(sess, train_loss, train_acc, val_images_batch, val_labels_batch, val_nums)
+                mean_loss, mean_acc = net_evaluation(sess, val_images_batch, val_labels_batch, val_nums)
                 print("%s: Step [%d]  val Loss : %f, val accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
 
             # model snapshot
@@ -177,7 +177,7 @@ def step_train(train_x,train_y):
                 best_models = os.path.join(path, 'best_models_{}_{:.4f}.ckpt'.format(i, max_acc))
                 print('------save:{}'.format(best_models))
                 saver.save(sess, best_models)
-            '''
+
         coord.request_stop()
         coord.join(threads)
 
