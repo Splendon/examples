@@ -135,7 +135,7 @@ def net_evaluation(sess,loss,accuracy,val_images_batch,val_labels_batch,val_nums
     mean_acc = np.array(val_accs, dtype=np.float32).mean()
     return mean_loss, mean_acc
 
-def step_train(train_images_batch,train_labels_batch,train_nums,train_log_step,
+def step_train(train_images_batch,train_labels_batch,train_log_step,
                val_images_batch,val_labels_batch,val_nums,val_log_step,
                snapshot_prefix,snapshot):
     # 训练过程参数保存
