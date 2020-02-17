@@ -112,7 +112,7 @@ def train(input_images, input_labels):
 
 with ipu_scope("/device:IPU:0"):
 # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
-    ipu_run = ipu.ipu_compiler.compile(train, [input_images])
+    ipu_run = ipu.ipu_compiler.compile(train, [input_images, input_labels])
     print('ipu_compiler success.')
 
 opts = utils.create_ipu_config()
