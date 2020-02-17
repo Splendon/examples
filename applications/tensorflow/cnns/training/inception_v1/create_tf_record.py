@@ -179,14 +179,14 @@ def read_records(filename,resize_height, resize_width,type=None):
 
     # 存储的图像类型为uint8,tensorflow训练时数据必须是tf.float32
     if type is None:
-        tf_image = tf.cast(tf_image, tf.float16)
+        tf_image = tf.cast(tf_image, tf.float32)
     elif type=='normalization':# [1]若需要归一化请使用:
         # 仅当输入数据是uint8,才会归一化[0,255]
         # tf_image = tf.image.convert_image_dtype(tf_image, tf.float32)
-        tf_image = tf.cast(tf_image, tf.float16) * (1. / 255.0)  # 归一化
+        tf_image = tf.cast(tf_image, tf.float32) * (1. / 255.0)  # 归一化
     elif type=='centralization':
         # 若需要归一化,且中心化,假设均值为0.5,请使用:
-        tf_image = tf.cast(tf_image, tf.float16) * (1. / 255) - 0.5 #中心化
+        tf_image = tf.cast(tf_image, tf.float32) * (1. / 255) - 0.5 #中心化
 
     # 这里仅仅返回图像和标签
     # return tf_image, tf_height,tf_width,tf_depth,tf_label
