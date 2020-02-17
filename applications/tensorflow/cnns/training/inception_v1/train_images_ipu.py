@@ -75,7 +75,7 @@ def batch_test(record_file,resize_height, resize_width):
 
 # train_x, train_y = batch_test(train_record_file, 224, 224)
 
-def train(input_images, input_labels):
+def train(input_images):
     # Define the model:
     # 导入神经网络模型，获得网络输出
 #    with slim.arg_scope(inception_v1.inception_v1_arg_scope()):
@@ -123,7 +123,7 @@ def train(input_images, input_labels):
 
 with ipu_scope("/device:IPU:0"):
 # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
-    ipu_run = ipu.ipu_compiler.compile(train, [input_images, input_labels])
+    ipu_run = ipu.ipu_compiler.compile(train, [input_images])
     print('ipu_compiler success.')
 
 opts = utils.create_ipu_config()
