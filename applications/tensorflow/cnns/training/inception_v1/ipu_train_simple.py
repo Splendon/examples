@@ -33,7 +33,7 @@ val_record_file = 'dataset/record/val224.tfrecords'
 
 train_log_step = 1
 base_lr = 0.01
-max_steps = 10
+max_steps = 1000
 train_param = [base_lr, max_steps]
 data_shape = [batch_size, resize_height, resize_width,depths]
 
@@ -152,6 +152,7 @@ def step_train(train_x,train_y):
             train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
                                                                   input_labels: batch_input_labels})
 #                                                                  keep_prob: 0.8, is_training: True})
+            print(train_loss, train_acc)
             '''
             # train for one-batch
             if i % train_log_step == 0:
@@ -180,5 +181,6 @@ def step_train(train_x,train_y):
         coord.request_stop()
         coord.join(threads)
 
-# 循环迭代过程
-step_train(train_images_batch, train_labels_batch)
+if __name__ == '__main__':
+    # 循环迭代过程
+    step_train(train_images_batch, train_labels_batch)
