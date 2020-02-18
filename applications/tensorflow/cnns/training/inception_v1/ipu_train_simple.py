@@ -35,7 +35,6 @@ train_log_step = 20
 base_lr = 0.01
 max_steps = 10000
 train_param = [base_lr, max_steps]
-data_shape = [batch_size, resize_height, resize_width,depths]
 
 val_log_step = 200
 snapshot = 2000
@@ -63,38 +62,19 @@ def train(input_images, input_labels):
                  reuse=None,
                  scope='InceptionV1',
                  global_pool=False)
+
     # Specify the loss function: tf.losses定义的loss函数都会自动添加到loss函数,不需要add_loss()了
-    tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out) #添加交叉熵损失loss=1.6
+    tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out)#添加交叉熵损失loss=1.6
     # slim.losses.add_loss(my_loss)
-    loss = tf.losses.get_total_loss(add_regularization_losses=False) #添加正则化损失loss=2.2
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float16))
+    loss = tf.losses.get_total_loss(add_regularization_losses=False)#添加正则化损失loss=2.2
 
-    # Specify the optimization scheme:
-    # optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
-
-
-    # global_step = tf.Variable(0, trainable=False)
-    # learning_rate = tf.train.exponential_decay(0.05, global_step, 150, 0.9)
     #optimizer = tf.train.MomentumOptimizer(learning_rate=base_lr,momentum= 0.9)
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
 
     # # train_tensor = optimizer.minimize(loss, global_step)
-    # train_op = slim.learning.create_train_op(loss, optimizer,global_step=global_step)
+    train_op = slim.learning.create_train_op(loss, optimizer)
 
-    # 在定义训练的时候, 注意到我们使用了`batch_norm`层时,需要更新每一层的`average`和`variance`参数,
-    # 更新的过程不包含在正常的训练过程中, 需要我们去手动像下面这样更新
-    # 通过`tf.get_collection`获得所有需要更新的`op`
-    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-
-    # 使用`tensorflow`的控制流, 先执行更新算子, 再执行训练
-    # tf-ipu可以导入slim.learning.create_train_op
-    with tf.control_dependencies(update_ops):
-        # create_train_op that ensures that when we evaluate it to get the loss,
-        # the update_ops are done and the gradient updates are computed.
-        # train_op = slim.learning.create_train_op(total_loss=loss,optimizer=optimizer)
-        train_op = slim.learning.create_train_op(total_loss=loss, optimizer=optimizer)
-
-    return loss, accuracy, train_op
+    return loss, train_op
 
 with ipu_scope("/device:IPU:0"):
 # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
@@ -147,16 +127,14 @@ def step_train(train_data, val_data):
         for i in range(max_steps + 1):
             # input dataflow
             train_x, train_y = sess.run([train_images_batch, train_labels_batch])
-            train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: train_x, input_labels: train_y})
+            train_loss, _ = sess.run(ipu_run, feed_dict={input_images: train_x, input_labels: train_y})
 #                                                                  keep_prob: 0.8, is_training: True})
 #            print(train_loss, train_acc)
 
             # train for one-batch
             if i % train_log_step == 0:
-#                train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
-#                                                          input_labels: batch_input_labels,
-#                                                          keep_prob: 1.0, is_training: False})
-                print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (datetime.now(), i, train_loss, train_acc))
+                print("%s: Step [%d]  train Loss : %f" % (datetime.now(), i, train_loss))
+                # print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (datetime.now(), i, train_loss, train_acc))
 
             # val
             if i % val_log_step == 0:
