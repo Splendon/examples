@@ -31,13 +31,13 @@ is_training = tf.placeholder(tf.bool, name='is_training')
 train_record_file = 'dataset/record/train224.tfrecords'
 val_record_file = 'dataset/record/val224.tfrecords'
 
-train_log_step = 10
+train_log_step = 20
 base_lr = 0.01
 max_steps = 10000
 train_param = [base_lr, max_steps]
 data_shape = [batch_size, resize_height, resize_width,depths]
 
-val_log_step = 10
+val_log_step = 200
 snapshot = 2000
 snapshot_prefix = 'models/model.ckpt'
 
