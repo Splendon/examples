@@ -126,6 +126,17 @@ def step_train(train_data, val_data):
     saver = tf.train.Saver()
     max_acc = 0.0
 
+    train_images, train_labels = read_records(train_data, resize_height, resize_width,
+                                              type='normalization')  # 读取训练数据
+    train_images_batch, train_labels_batch = get_batch_images(train_images, train_labels,
+                                                              batch_size=batch_size, labels_nums=labels_nums,
+                                                              one_hot=True, shuffle=True)
+    # during val, shuffle=True is not necessary
+    val_images, val_labels = read_records(val_data, resize_height, resize_width,
+                                          type='normalization')  # 读取验证数据
+    val_images_batch, val_labels_batch = get_batch_images(val_images, val_labels,
+                                                          batch_size=batch_size, labels_nums=labels_nums,
+                                                          one_hot=True, shuffle=False)
     # 启动tf.Session
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -135,18 +146,6 @@ def step_train(train_data, val_data):
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         for i in range(max_steps + 1):
             # input dataflow
-            train_images, train_labels = read_records(train_data, resize_height, resize_width,
-                                                      type='normalization')  # 读取训练数据
-            train_images_batch, train_labels_batch = get_batch_images(train_images, train_labels,
-                                                                      batch_size=batch_size, labels_nums=labels_nums,
-                                                                      one_hot=True, shuffle=True)
-            # during val, shuffle=True is not necessary
-            val_images, val_labels = read_records(val_data, resize_height, resize_width,
-                                                  type='normalization')  # 读取验证数据
-            val_images_batch, val_labels_batch = get_batch_images(val_images, val_labels,
-                                                                  batch_size=batch_size, labels_nums=labels_nums,
-                                                                  one_hot=True, shuffle=False)
-
             train_x, train_y = sess.run([train_images_batch, train_labels_batch])
             train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: train_x, input_labels: train_y})
 #                                                                  keep_prob: 0.8, is_training: True})
