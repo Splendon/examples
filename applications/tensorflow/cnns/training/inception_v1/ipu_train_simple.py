@@ -31,13 +31,13 @@ is_training = tf.placeholder(tf.bool, name='is_training')
 train_record_file = 'dataset/record/train224.tfrecords'
 val_record_file = 'dataset/record/val224.tfrecords'
 
-train_log_step = 1
+train_log_step = 10
 base_lr = 0.01
 max_steps = 10000
 train_param = [base_lr, max_steps]
 data_shape = [batch_size, resize_height, resize_width,depths]
 
-val_log_step = 200
+val_log_step = 10
 snapshot = 2000
 snapshot_prefix = 'models/model.ckpt'
 
@@ -48,20 +48,6 @@ print('train nums:%d,val nums:%d'%(train_nums,val_nums))
 
 # get train data for record
 # during training, it needs shuffle=True
-# train_images: Tensor("mul:0", shape=(224, 224, 3), dtype=float32);
-# train_labels: Tensor("Cast:0", shape=(), dtype=int32)
-train_images, train_labels = read_records(train_record_file, resize_height, resize_width, type='normalization') # 读取训练数据
-
-# train_images_batch: Tensor("shuffle_batch:0", shape=(32, 224, 224, 3), dtype=float32)
-# train_labels_batch: Tensor("one_hot:0", shape=(32, 5), dtype=int32)
-train_images_batch, train_labels_batch = get_batch_images(train_images, train_labels,
-                                                          batch_size=batch_size, labels_nums=labels_nums,
-                                                          one_hot=True, shuffle=True)
-# during val, shuffle=True is not necessary
-val_images, val_labels = read_records(val_record_file, resize_height, resize_width, type='normalization') # 读取验证数据
-val_images_batch, val_labels_batch = get_batch_images(val_images, val_labels,
-                                                      batch_size=batch_size, labels_nums=labels_nums,
-                                                      one_hot=True, shuffle=False)
 
 def train(input_images, input_labels):
     # Define the model:
@@ -70,7 +56,7 @@ def train(input_images, input_labels):
 #        out, end_points = inception_v1.inception_v1(inputs=input_images, num_classes=labels_nums, dropout_keep_prob=keep_prob, is_training=is_training)
     out, end_points = inception_v1.inception_v1(inputs=input_images,
                  num_classes=labels_nums,
-                 is_training=False,
+                 is_training=True,
                  dropout_keep_prob=0.8,
                  prediction_fn=slim.softmax,
                  spatial_squeeze=True,
@@ -135,7 +121,7 @@ def net_evaluation(sess,val_images_input,val_labels_input,val_nums):
     batch_acc = np.array(val_accs, dtype=np.float32).mean()
     return batch_loss, batch_acc
 
-def step_train(train_x,train_y):
+def step_train():
     # 训练过程参数保存
     saver = tf.train.Saver()
     max_acc = 0.0
@@ -148,9 +134,21 @@ def step_train(train_x,train_y):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         for i in range(max_steps + 1):
-            batch_input_images, batch_input_labels = sess.run([train_x, train_y])
-            train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: batch_input_images,
-                                                                  input_labels: batch_input_labels})
+            # input dataflow
+            train_images, train_labels = read_records(train_record_file, resize_height, resize_width,
+                                                      type='normalization')  # 读取训练数据
+            train_images_batch, train_labels_batch = get_batch_images(train_images, train_labels,
+                                                                      batch_size=batch_size, labels_nums=labels_nums,
+                                                                      one_hot=True, shuffle=True)
+            # during val, shuffle=True is not necessary
+            val_images, val_labels = read_records(val_record_file, resize_height, resize_width,
+                                                  type='normalization')  # 读取验证数据
+            val_images_batch, val_labels_batch = get_batch_images(val_images, val_labels,
+                                                                  batch_size=batch_size, labels_nums=labels_nums,
+                                                                  one_hot=True, shuffle=False)
+
+            train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: train_images_batch,
+                                                                  input_labels: train_labels_batch})
 #                                                                  keep_prob: 0.8, is_training: True})
 #            print(train_loss, train_acc)
 
@@ -183,4 +181,4 @@ def step_train(train_x,train_y):
 
 if __name__ == '__main__':
     # 循环迭代过程
-    step_train(train_images_batch, train_labels_batch)
+    step_train()
