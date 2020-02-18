@@ -68,13 +68,15 @@ def train(input_images, input_labels):
     # slim.losses.add_loss(my_loss)
     loss = tf.losses.get_total_loss(add_regularization_losses=False)#添加正则化损失loss=2.2
 
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float32))
+
     #optimizer = tf.train.MomentumOptimizer(learning_rate=base_lr,momentum= 0.9)
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
 
     # # train_tensor = optimizer.minimize(loss, global_step)
     train_op = slim.learning.create_train_op(loss, optimizer)
 
-    return loss, train_op
+    return loss, accuracy, train_op
 
 with ipu_scope("/device:IPU:0"):
 # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
@@ -127,14 +129,13 @@ def step_train(train_data, val_data):
         for i in range(max_steps + 1):
             # input dataflow
             train_x, train_y = sess.run([train_images_batch, train_labels_batch])
-            train_loss, _ = sess.run(ipu_run, feed_dict={input_images: train_x, input_labels: train_y})
+            train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: train_x, input_labels: train_y})
 #                                                                  keep_prob: 0.8, is_training: True})
 #            print(train_loss, train_acc)
 
             # train for one-batch
             if i % train_log_step == 0:
-                print("%s: Step [%d]  train Loss : %f" % (datetime.now(), i, train_loss))
-                # print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (datetime.now(), i, train_loss, train_acc))
+                print("%s: Step [%d]  train Loss : %f, training accuracy :  %g" % (datetime.now(), i, train_loss, train_acc))
 
             # val
             if i % val_log_step == 0:
