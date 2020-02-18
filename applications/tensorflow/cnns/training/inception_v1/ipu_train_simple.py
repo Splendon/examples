@@ -63,19 +63,32 @@ def train(input_images, input_labels):
                  global_pool=False)
 
     # Specify the loss function: tf.losses定义的loss函数都会自动添加到loss函数,不需要add_loss()了
-    tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out)#添加交叉熵损失loss=1.6
+#    tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out)#添加交叉熵损失loss=1.6
     # slim.losses.add_loss(my_loss)
-    loss = tf.losses.get_total_loss(add_regularization_losses=False)#添加正则化损失loss=2.2
+#    loss = tf.losses.get_total_loss(add_regularization_losses=False)#添加正则化损失loss=2.2
 
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float32))
+#    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float32))
 
     #optimizer = tf.train.MomentumOptimizer(learning_rate=base_lr,momentum= 0.9)
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
+#    optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
 
     # # train_tensor = optimizer.minimize(loss, global_step)
-    train_op = slim.learning.create_train_op(loss, optimizer)
+#    train_op = slim.learning.create_train_op(loss, optimizer)
 
-    return loss, accuracy, train_op
+    slim.losses.softmax_cross_entropy(out, input_labels)
+
+    total_loss = slim.losses.get_total_loss()
+    tf.summary.scalar('losses/total_loss', total_loss)
+
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float32))
+    # Specify the optimization scheme:
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
+
+    # create_train_op that ensures that when we evaluate it to get the loss,
+    # the update_ops are done and the gradient updates are computed.
+    train_op = slim.learning.create_train_op(total_loss, optimizer)
+
+    return total_loss, accuracy, train_op
 
 with ipu_scope("/device:IPU:0"):
 # cost,update = ipu.ipu_compiler.compile(graph,[x,y])
