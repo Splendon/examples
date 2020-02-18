@@ -147,8 +147,8 @@ def step_train():
                                                                   batch_size=batch_size, labels_nums=labels_nums,
                                                                   one_hot=True, shuffle=False)
 
-            train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: train_images_batch,
-                                                                  input_labels: train_labels_batch})
+            train_x, train_y = sess.run([train_images_batch, train_labels_batch])
+            train_loss, train_acc, _ = sess.run(ipu_run, feed_dict={input_images: train_x, input_labels: train_y})
 #                                                                  keep_prob: 0.8, is_training: True})
 #            print(train_loss, train_acc)
 
