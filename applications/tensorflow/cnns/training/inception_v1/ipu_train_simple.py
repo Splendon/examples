@@ -121,7 +121,7 @@ def net_evaluation(sess,val_images_input,val_labels_input,val_nums):
     batch_acc = np.array(val_accs, dtype=np.float32).mean()
     return batch_loss, batch_acc
 
-def step_train():
+def step_train(train_data, val_data):
     # 训练过程参数保存
     saver = tf.train.Saver()
     max_acc = 0.0
@@ -135,13 +135,13 @@ def step_train():
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         for i in range(max_steps + 1):
             # input dataflow
-            train_images, train_labels = read_records(train_record_file, resize_height, resize_width,
+            train_images, train_labels = read_records(train_data, resize_height, resize_width,
                                                       type='normalization')  # 读取训练数据
             train_images_batch, train_labels_batch = get_batch_images(train_images, train_labels,
                                                                       batch_size=batch_size, labels_nums=labels_nums,
                                                                       one_hot=True, shuffle=True)
             # during val, shuffle=True is not necessary
-            val_images, val_labels = read_records(val_record_file, resize_height, resize_width,
+            val_images, val_labels = read_records(val_data, resize_height, resize_width,
                                                   type='normalization')  # 读取验证数据
             val_images_batch, val_labels_batch = get_batch_images(val_images, val_labels,
                                                                   batch_size=batch_size, labels_nums=labels_nums,
@@ -181,4 +181,4 @@ def step_train():
 
 if __name__ == '__main__':
     # 循环迭代过程
-    step_train()
+    step_train(train_record_file, val_record_file)
