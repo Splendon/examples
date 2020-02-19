@@ -25,7 +25,7 @@ input_images = tf.get_variable(initializer=lambda: tf.random_normal(shape=[batch
 # input_labels定义
 #input_labels = tf.placeholder(dtype=tf.int32, shape=[batch_size, labels_nums], name='label')
 input_labels = tf.get_variable(initializer=lambda: tf.random_normal(shape=[batch_size, labels_nums],
-                                                                    dtype=tf.int32), name="input_labels")
+                                                                    dtype=tf.float32), name="input_labels")
 
 # dropout definition
 keep_prob = tf.placeholder(tf.float16,name='keep_prob')
