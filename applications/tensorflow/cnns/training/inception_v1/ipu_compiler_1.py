@@ -4,6 +4,7 @@ import tensorflow as tf
 from tensorflow.python.ipu.scopes import ipu_scope
 from tensorflow.python.ipu import utils
 from tensorflow.python import ipu
+from tensorflow.python.ipu.ops import internal_ops
 
 # Regression example:
 # We will create sample data as follows:
@@ -26,6 +27,7 @@ y = tf.placeholder(shape=[1], dtype=tf.float32)
 def train(x, y):
     # Create variable (one model parameter = A)
 #    A = tf.Variable(tf.random_normal(shape=[1]))
+    print_op = internal_ops.print_tensor(x, y)
     A = tf.get_variable(initializer=lambda: tf.random_normal(shape=[1], dtype=tf.float32), name="A")
 
     my_output = tf.multiply(x, A)
@@ -37,7 +39,7 @@ def train(x, y):
     # Optimizer
     my_opt = tf.train.GradientDescentOptimizer(0.02)
     train_step = my_opt.minimize(loss)
-    return A,loss
+    return A,loss, print_op
 
 with ipu_scope("/device:IPU:0"):
     #cost,update = ipu.ipu_compiler.compile(graph,[x,y])
@@ -54,3 +56,4 @@ with tf.Session() as sess:
         var,L = sess.run(ipu_run, feed_dict={x: rand_x, y: rand_y})
         print('Step #' + str(i+1) + ' A = ' + str(var))
         print('Loss = ' + str(L))
+
